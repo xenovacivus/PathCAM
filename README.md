@@ -5,6 +5,8 @@ PathCAM - Toolpath generation software for CNC robots!  PathCAM is a simple, eas
 
 PathCAM is under active development!  Help out by trying the tool and providing feedback and requesting more features.
 
+![PathCAM Screenshot](https://raw.github.com/xenovacivus/PathCAM/master/Examples/screenshot.png)
+
 
 Getting Started
 ---------------
