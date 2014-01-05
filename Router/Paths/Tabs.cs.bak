@@ -1,0 +1,135 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Geometry;
+using OpenTK;
+using OpenTK.Graphics.OpenGL;
+
+namespace Router.Paths
+{
+    public class Tabs
+    {
+        private LineStrip boundary;
+        private int minTabs = 3;
+        private float desiredSpacing = 2500;
+        protected float tabRadius = 200;
+        protected float toolRadius = 0;
+        protected List<Vector3> tabLocations;
+        protected float tabHeight = 50;
+        public Tabs(LineStrip boundary, float toolRadius)
+        {
+            Slice slice = new Slice(new LineStrip[] { boundary }, new Plane(Vector3.UnitZ, Vector3.Zero));
+            slice.Offset(toolRadius);
+            this.boundary = slice.GetLines(Slice.LineType.Outside).First(s => true);
+            this.toolRadius = toolRadius;
+
+            float length = this.boundary.Length(LineStrip.Type.Closed);
+            int numTabs = (int)(length / desiredSpacing);
+            numTabs = Math.Max(numTabs, minTabs);
+
+
+            float tabSpacing = length / numTabs;
+
+            tabLocations = new List<Vector3>();
+            foreach (var point in this.boundary.PointsAlongLine(tabSpacing, tabSpacing / 2.0f))
+            {
+                tabLocations.Add(point);
+            }
+        }
+
+        public IEnumerable<Vector3> TabLocations
+        {
+            get { return tabLocations; }
+        }
+
+        public LineStrip Boundary
+        {
+            get { return boundary; }
+        }
+
+        public Vector3 ClearHeight(Vector3 test, float height)
+        {
+            test.Z = Math.Max(test.Z, height);
+            return test;
+        }
+
+        /// <summary>
+        /// Create another line strip which follows the same path, but avoids tab locations.
+        /// NOTE: this currently only works on closed input lines.  The algorithm could
+        /// be modified to work correctly with open paths too, but that's not needed yet.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public LineStrip AvoidTabs(LineStrip input)
+        {
+            LineStrip ret = new LineStrip();
+            foreach (var segment in input.Segments(LineStrip.Type.Closed))
+            {
+                if (segment.A.Z > tabHeight && segment.B.Z > tabHeight)
+                {
+                    ret.Append(segment.B);
+                    continue;
+                }
+                List<LineSegment> remainingSegments = new List<LineSegment>();
+                remainingSegments.Add(segment);
+                foreach (Vector3 tab in this.TabLocations)
+                {
+                    var i = new LineSegmentCircleIntersect(segment, tab, tabRadius + toolRadius);
+                    if (i.type == LineSegmentCircleIntersect.IntersectType.Segment)
+                    {
+                        List<LineSegment> temp = new List<LineSegment>();
+                        
+                        foreach (var seg in remainingSegments)
+                        {
+                            temp.AddRange(seg.Subtract(i.IntersectSegment));
+                        }
+                        temp.RemoveAll(s => s.Length < 0.1f);
+                        remainingSegments = temp;
+                    }
+                }
+
+                if (remainingSegments.Count == 0)
+                {
+                    // Entire segment is within a tab
+                    ret.Append(ClearHeight(segment.B, tabHeight));
+                }
+                else
+                {
+                    // Everything described in "remainingSegments" is outside of the tab, and the spaces
+                    // between are on the tab.  The path between is known since it's always a straight line.
+                    remainingSegments.Sort((s1, s2) => (s1.A - segment.A).Length.CompareTo((s2.A - segment.A).Length));
+                    
+                    bool needsPointB = true;
+                    foreach (var s in remainingSegments)
+                    {
+                        if ((segment.A - s.A).Length > 0.1f)
+                        {
+                            ret.Append(ClearHeight(s.A, tabHeight));
+                        }
+
+                        ret.Append(s.A);
+                        ret.Append(s.B);
+
+                        if ((segment.B - s.B).Length > 0.1f)
+                        {
+                            ret.Append(ClearHeight(s.B, tabHeight));
+                        }
+                        else
+                        {
+                            needsPointB = false;
+                        }
+                    }
+
+                    if (needsPointB)
+                    {
+                        ret.Append(ClearHeight(segment.B, tabHeight));
+                    }
+                }
+            }
+
+            return ret;
+        }
+    }
+}
