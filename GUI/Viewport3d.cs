@@ -58,7 +58,7 @@ namespace GUI
                 r.Height = 1;
             }
             float aspect = r.Width / (float)r.Height;
-            projectionMatrix = OpenTK.Matrix4.CreatePerspectiveFieldOfView(OpenTK.MathHelper.PiOver4, aspect, 0.01f, 100.0f);
+            projectionMatrix = OpenTK.Matrix4.CreatePerspectiveFieldOfView(OpenTK.MathHelper.PiOver4, aspect, 0.1f, 100.0f);
             inverseProjectionMatrix = Matrix4.Invert(projectionMatrix);
         }
 
