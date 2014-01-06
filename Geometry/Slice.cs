@@ -48,30 +48,50 @@ namespace Geometry
             //GL.LineWidth(2);
             //GL.Begin(PrimitiveType.Lines);
             //float height = 0;
-            LineHandler lineHandler = new LineHandler();
-            
-            // Slice at 3 levels and combine all segments - this obviates floating point comparison handling.
+
+            // Slice at 3 levels and combine all segments - this obviates dealing with triangles that are exactly on the plane.
             for (int i = -1; i <= 1; i++)
             {
                 Vector3 offset = plane.Normal * 0.0001f * (float)i;
+                LineHandler lineHandler = new LineHandler(0.0f);
                 Plane testPlane = new Plane(plane.Normal, plane.Point + offset);
                 foreach (Triangle t in mesh.Triangles)
                 {
                     var intersect = new TrianglePlaneIntersect(t, testPlane);
                     if (intersect.Intersects)
                     {
-                        lineHandler.AddSegment(intersect.PointA - offset, intersect.PointB - offset);
+                        lineHandler.AddSegment(intersect.PointA, intersect.PointB);
                         //GL.Color3(Color.Blue);
                         //GL.Vertex3(intersect.PointA + new Vector3(0, 0, height + .01f));
                         //GL.Color3(Color.Red);
                         //GL.Vertex3(intersect.PointB + new Vector3(0, 0, height + .01f));
                     }
+                    else if (intersect.all_intersect && Vector3.Dot(t.Plane.Normal, testPlane.Normal) > 0.5f)
+                    {
+                        // Entire triangle intersects
+                        // Add all the triangle edges (TODO: clean this up...)
+                        List<Vector3> vertices = new List<Vector3>(t.Vertices);
+                        for (int a = 0; a < 3; a++)
+                        {
+                            Vector3 v1 = vertices[a];
+                            Vector3 v2 = vertices[(a + 1) % 3];
+                            lineHandler.AddSegment(v1, v2);
+                        }
+                    }
+                }
+                if (this.polyTree == null)
+                {
+                    Init(lineHandler.GetOuterLoops(), plane);
+                }
+                else
+                {
+                    Slice s = new Slice(lineHandler.GetOuterLoops(), plane);
+                    this.Add(s);
                 }
             }
             //GL.End();
             //GL.Enable(EnableCap.Lighting);
             //GL.LineWidth(1);
-            Init(lineHandler.GetOuterLoops(), plane);
         }
 
         public Slice(Slice fromSlice)
@@ -541,12 +561,13 @@ namespace Geometry
             // All units are in thousandths of an inch
             // Floats have a precision of about 7 digits.
             // An epsilion value of 0.001f will be valid for about +-100 inches
-            private const float epsilon = 0.01f;
+            private float epsilon = 0.001f;
             private List<VectorWrapper> vectors = new List<VectorWrapper>();
             private List<Segment> segments = new List<Segment>();
 
-            public LineHandler()
+            public LineHandler(float epsilon = 0.01f)
             {
+                this.epsilon = epsilon;
             }
 
             public void AddSegment (Vector3 a, Vector3 b)
@@ -561,7 +582,8 @@ namespace Geometry
 
             private VectorWrapper FindVectorWrapper(Vector3 v)
             {
-                int index = vectors.FindIndex(vectorwrapper => (vectorwrapper.vector - v).Length < epsilon);
+                //int index = vectors.FindIndex(vectorwrapper => (vectorwrapper.vector - v).Length <= epsilon);
+                int index = vectors.FindIndex(vectorwrapper => vectorwrapper.vector == v);
                 if (index < 0)
                 {
                     vectors.Add(new VectorWrapper(v));

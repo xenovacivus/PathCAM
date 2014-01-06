@@ -108,6 +108,10 @@ namespace Geometry
 
         public float[] PositionFloats()
         {
+            if (vertices == null)
+            {
+                return new float[] { };
+            }
             Input i = FindInputBySemantic(vertices.input, "POSITION");
             Source s = FindSourceById(sources, i.source);
             IEnumerable<float> floats = s.float_array.Split(new char[] { ' ' }).Select(float_str => float.Parse(float_str));

@@ -123,8 +123,8 @@ namespace GUI
             
             // Draw the slice at the mouse point
             //GL.Disable(EnableCap.Lighting);
-            //GL.Color3(Color.White);
-            //Slice s = new Slice(this, new Plane(Vector3.UnitZ, mousePoint));
+            //GL.Color3(Color.Black);
+            //Slice s = new Slice(this, new Plane(Vector3.UnitZ, mouseHoverPoint));
             //foreach (var line in s.GetLines(Slice.LineType.All))
             //{
             //    GL.Begin(PrimitiveType.LineLoop);
@@ -134,6 +134,18 @@ namespace GUI
             //    }
             //    GL.End();
             //}
+            //GL.Translate(0, 0, .25f);
+            //GL.Color3(Color.DarkBlue);
+            //GL.Begin(PrimitiveType.Triangles);
+            //foreach (var tri in s.Triangles())
+            //{
+            //    foreach (var point in tri.Vertices)
+            //    {
+            //        GL.Vertex3(point);
+            //    }
+            //}
+            //GL.End();
+            //GL.Translate(0, 0, -.25f);
             //GL.Enable(EnableCap.Lighting);
 
             // Draw the triangles & edges
@@ -148,16 +160,16 @@ namespace GUI
                 }
                 lastNumTriangles = TriangleCount;
             }
-
+            
             if (triangleDisplayList >= 0)
             {
                 GL.Color3(triangleColor);
                 GL.CallList(triangleDisplayList);
-
+            
                 GL.Disable(EnableCap.Lighting);
                 GL.Color3(lineColor);
                 GL.CallList(lineDisplayList);
-
+            
                 GL.Color3(badLineColor);
                 GL.CallList(badLineDisplayList);
                 GL.Enable(EnableCap.Lighting);
@@ -170,7 +182,7 @@ namespace GUI
                     lineDisplayList = GL.GenLists(1);
                     badLineDisplayList = GL.GenLists(1);
                 }
-
+            
                 // Triangles
                 GL.Color3(triangleColor);
                 if (useDisplayLists)
@@ -191,7 +203,7 @@ namespace GUI
                 {
                     GL.EndList();
                 }
-
+            
                 // Outside Edges
                 List<LineSegment> edges = new List<LineSegment>();
                 List<LineSegment> badEdges = new List<LineSegment>();
@@ -211,7 +223,7 @@ namespace GUI
                         badEdges.Add(edge.LineSegment);
                     }
                 }
-
+            
                 GL.Disable(EnableCap.Lighting);
                 GL.Color3(lineColor);
                 if (useDisplayLists)
@@ -229,7 +241,7 @@ namespace GUI
                 {
                     GL.EndList();
                 }
-
+            
                 GL.Color3(badLineColor);
                 if (useDisplayLists)
                 {

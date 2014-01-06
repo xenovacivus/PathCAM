@@ -112,6 +112,7 @@ namespace Geometry
         private Vector3 pointA;
         private Vector3 pointB;
         private bool intersects = false;
+        public bool all_intersect = false;
         public TrianglePlaneIntersect(Triangle triangle, Plane plane)
         {
             // Find the intersections between edges on the triangle and the plane.
@@ -129,14 +130,64 @@ namespace Geometry
             {
                 float d1 = distances[i];
                 float d2 = distances[(i + 1) % 3];
+                float d3 = distances[(i + 2) % 3];
                 Vector3 v1 = vertices[i];
                 Vector3 v2 = vertices[(i + 1) % 3];
+                Vector3 v3 = vertices[(i + 2) % 3];
+
                 if (d1 * d2 < 0)
                 {
-                    // Edge of the triangle crosses the plane, interpolate to get the intersection point
+                    // One point on the edge from D1 to D2
                     Vector3 intersect = new Vector3(v2 * d1 - v1 * d2) / (d1 - d2);
                     onPlane.Add(intersect);
+                    if (d3 == 0)
+                    {
+                        // Other point is on D3
+                        onPlane.Add(v3);
+                        break;
+                    }
+                    else
+                    {
+                        if (d1 * d3 < 0)
+                        {
+                            // Intersect with v1 to v3
+                            onPlane.Add(new Vector3(v3 * d1 - v1 * d3) / (d1 - d3));
+                            break;
+                        }
+                        else if (d2 * d3 < 0)
+                        {
+                            // Intersect with v2 to v3
+                            onPlane.Add(new Vector3(v3 * d2 - v2 * d3) / (d2 - d3));
+                            break;
+                        }
+                        else
+                        {
+                            // how the heck would we get here?
+                        }
+                    }
                 }
+                if (d1 == 0 && d2 == 0)
+                {
+                    if (d3 == 0)
+                    {
+                        // Triangle intersects perfectly with the plane - need to return all 3 edges here?
+                        all_intersect = true;
+                        break;
+                    }
+                    else
+                    {
+                        onPlane.Add(v1);
+                        onPlane.Add(v2);
+                        break;
+                    }
+                }
+
+                //if (d1 * d2 < 0)
+                //{
+                //    // Edge of the triangle crosses the plane, interpolate to get the intersection point
+                //    Vector3 intersect = new Vector3(v2 * d1 - v1 * d2) / (d1 - d2);
+                //    onPlane.Add(intersect);
+                //}
             }
 
             if (onPlane.Count == 2)
