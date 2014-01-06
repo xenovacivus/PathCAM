@@ -11,7 +11,8 @@ PathCAM is under active development!  Help out by trying the tool and providing 
 Getting Started
 ---------------
 
-You'll need [Visual Studio 2012](Code http://www.microsoft.com/en-us/download/details.aspx?id=34673) to build the code.  Once you've got it up and running, it's pretty intuitive.
+* From Source: You'll need [Visual Studio 2012](Code http://www.microsoft.com/en-us/download/details.aspx?id=34673) to build the code.
+* From Installer: Download & Install the [PathCAM MSI package](https://github.com/xenovacivus/PathCAM/blob/master/Installer/PathCAM.msi?raw=true).
 
 Start by loading a .stl or .obj file - you can just drag & drop from the file system, or use the Open File button.  Make sure the dropdown for scale is set correctly before loading the file, otherwise you might wind up with something that you can't see or that takes up the entire screen!  You can move the models (green things) and the tabs (orange things) around to suit your needs.  Once you've got everything where you want it, try to generate some toolpaths.
 
