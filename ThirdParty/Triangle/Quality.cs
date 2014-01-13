@@ -26,7 +26,7 @@ namespace TriangleNet
         NewLocation newLocation;
 
         // Not used at the moment
-        Func<Point, Point, Point, double, bool> userTest;
+        //Func<Point, Point, Point, double, bool> userTest;
 
         ILog<SimpleLogItem> logger;
 
@@ -441,14 +441,14 @@ namespace TriangleNet
                 }
 
                 // Check whether the user thinks this triangle is too large.
-                if (behavior.Usertest && userTest != null)
-                {
-                    if (userTest(torg, tdest, tapex, area))
-                    {
-                        queue.Enqueue(ref testtri, minedge, tapex, torg, tdest);
-                        return;
-                    }
-                }
+                //if (behavior.Usertest && userTest != null)
+                //{
+                //    if (userTest(torg, tdest, tapex, area))
+                //    {
+                //        queue.Enqueue(ref testtri, minedge, tapex, torg, tdest);
+                //        return;
+                //    }
+                //}
             }
 
             // find the maximum edge and accordingly the pqr orientation

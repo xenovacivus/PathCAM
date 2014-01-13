@@ -20,7 +20,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Geometry;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
@@ -38,6 +37,7 @@ namespace GUI
         int selectedTabIndex = -1;
         int drawSliceDisplayList = -1;
         int obliterateIndicateDisplayList = -1;
+        bool useDisplayLists = true;
 
         public void Draw()
         {
@@ -67,8 +67,11 @@ namespace GUI
             }
             else
             {
-                drawSliceDisplayList = GL.GenLists(1);
-                GL.NewList(drawSliceDisplayList, ListMode.CompileAndExecute);
+                if (useDisplayLists)
+                {
+                    drawSliceDisplayList = GL.GenLists(1);
+                    GL.NewList(drawSliceDisplayList, ListMode.CompileAndExecute);
+                }
                 GL.Begin(PrimitiveType.Triangles);
                 GL.Normal3(drawSlice.Plane.Normal);
                 foreach (var triangle in drawSlice.Triangles())
@@ -79,7 +82,10 @@ namespace GUI
                     }
                 }
                 GL.End();
-                GL.EndList();
+                if (useDisplayLists)
+                {
+                    GL.EndList();
+                }
             }
 
             if (tabLocations.Count == 0)

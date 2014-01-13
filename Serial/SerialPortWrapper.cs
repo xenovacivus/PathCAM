@@ -136,11 +136,21 @@ namespace Serial
             port.Parity = Parity.None;
             port.Handshake = Handshake.None;
             port.StopBits = StopBits.One;
-            port.DiscardNull = false;
+            //port.DiscardNull = false; // not implemented in Mono, just don't use
             port.DtrEnable = false;
             port.RtsEnable = false;
             port.Encoding = System.Text.Encoding.Default;
+
+            // Earlier versions of Mono don't fire this event, so poll instead.
             port.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
+            System.Timers.Timer t = new System.Timers.Timer(10);
+            //t.Elapsed += t_Elapsed;
+            //t.Start();
+        }
+
+        void t_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            port_DataReceived(null, null);
         }
 
         public void Transmit(byte[] data, byte address)
@@ -157,7 +167,7 @@ namespace Serial
         {
             try
             {
-                while (port.BytesToRead > 0)
+                while (port.IsOpen && port.BytesToRead > 0)
                 {
                     byte data = (byte)port.ReadByte();
                     packet.ProcessDataChar(data);

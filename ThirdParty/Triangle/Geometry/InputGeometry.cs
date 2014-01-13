@@ -80,7 +80,7 @@ namespace TriangleNet.Geometry
         /// </summary>
         public IEnumerable<Point> Points
         {
-            get { return points; }
+            get { return points.ConvertAll(o => o as Point); }
         }
 
         /// <summary>
