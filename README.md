@@ -11,8 +11,14 @@ PathCAM is under active development!  Help out by trying the tool and providing 
 Getting Started
 ---------------
 
-* From Source: You'll need [Visual Studio 2012](Code http://www.microsoft.com/en-us/download/details.aspx?id=34673) to build the code.
-* From Installer: Download & Install the [PathCAM MSI package](https://github.com/xenovacivus/PathCAM/blob/master/Installer/PathCAM.msi?raw=true).
+* Ubuntu
+ * You'll need [Mono](http://www.go-mono.com/mono-downloads/download.html) to build the code, but this comes pre-installed on Ubuntu 12.04 and later (yay!)
+ * Get the windows forms lib: <code>sudo apt-get install libmono-winforms2.0-cil</code>
+ * Build: <code>xbuild CNC_Machine.sln</code>
+ * Run: <code>mono GUI/bin/Debug/PathCAM.exe</code>
+* Windows
+ * From Source: You'll need [Visual Studio 2012](Code http://www.microsoft.com/en-us/download/details.aspx?id=34673) to build the code.
+ * From Installer: Download & Install the [PathCAM MSI package](https://github.com/xenovacivus/PathCAM/blob/master/Installer/PathCAM.msi?raw=true).
 
 Start by loading a .stl or .obj file - you can just drag & drop from the file system, or use the Open File button.  Make sure the dropdown for scale is set correctly before loading the file, otherwise you might wind up with something that you can't see or that takes up the entire screen!  You can move the models (green things) and the tabs (orange things) around to suit your needs.  Once you've got everything where you want it, try to generate some toolpaths.
 
