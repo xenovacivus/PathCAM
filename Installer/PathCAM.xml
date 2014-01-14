@@ -33,8 +33,8 @@
 			  <File Id='GeometryDLL' Name='Geometry.dll' DiskId='1' Source='..\GUI\Bin\Release\Geometry.dll' />
 			  <File Id='OpenTKDLL' Name='OpenTK.dll' DiskId='1' Source='..\GUI\Bin\Release\OpenTK.dll' />
 			  <File Id='OpenTK_GLControlDLL' Name='OpenTK.GLControl.dll' DiskId='1' Source='..\GUI\Bin\Release\OpenTK.GLControl.dll' />
-			  <File Id='QuantumConcepts_CommonDLL' Name='QuantumConcepts.Common.dll' DiskId='1' Source='..\GUI\Bin\Release\QuantumConcepts.Common.dll' />
-			  <File Id='QuantumConcepts_Formats_STLDLL' Name='QuantumConcepts.Formats.STL.dll' DiskId='1' Source='..\GUI\Bin\Release\QuantumConcepts.Formats.STL.dll' />
+			  <!--File Id='QuantumConcepts_CommonDLL' Name='QuantumConcepts.Common.dll' DiskId='1' Source='..\GUI\Bin\Release\QuantumConcepts.Common.dll' /-->
+			  <File Id='QuantumConcepts_Formats_STLDLL' Name='QuantumConcepts.Formats.StereoLithography.dll' DiskId='1' Source='..\GUI\Bin\Release\QuantumConcepts.Formats.StereoLithography.dll' />
 			  <File Id='RobotDLL' Name='Robot.dll' DiskId='1' Source='..\GUI\Bin\Release\Robot.dll' />
 			  <File Id='SerialDLL' Name='Serial.dll' DiskId='1' Source='..\GUI\Bin\Release\Serial.dll' />
 			  <File Id='TriangleDLL' Name='Triangle.dll' DiskId='1' Source='..\GUI\Bin\Release\Triangle.dll' />
@@ -63,9 +63,14 @@
       <ComponentRef Id='ProgramMenuDir' />
     </Feature>
 	
-	<PropertyRef Id="NETFRAMEWORK45"/>
+	<!--PropertyRef Id="NETFRAMEWORK45"/>
 	<Condition Message="This application requires .NET Framework 4.5. Please install the .NET Framework then run this installer again.">
 		<![CDATA[Installed OR NETFRAMEWORK45]]>
+	</Condition-->
+	
+	<PropertyRef Id="NETFRAMEWORK35" />
+	<Condition Message="PathCAM requires the .NET Framework 3.5 to be installed.">
+	  <![CDATA[Installed OR NETFRAMEWORK35]]>
 	</Condition>
 	
 	<Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
