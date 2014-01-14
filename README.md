@@ -13,7 +13,9 @@ Getting Started
 
 * Ubuntu
  * You'll need [Mono](http://www.go-mono.com/mono-downloads/download.html) to build the code, but this comes pre-installed on Ubuntu 12.04 and later (yay!)
- * Get the windows forms lib: <code>sudo apt-get install libmono-winforms2.0-cil</code>
+ * Install xbuild <code>sudo apt-get install mono-xbuild</code>
+ * Install gmcs <code>sudo apt-get install mono-gmcs</code>
+ * Install winforms <code>sudo apt-get install libmono-winforms2.0-cil</code>
  * Build: <code>xbuild CNC_Machine.sln</code>
  * Run: <code>mono GUI/bin/Debug/PathCAM.exe</code>
 * Windows
