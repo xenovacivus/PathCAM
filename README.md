@@ -15,8 +15,7 @@ Getting Started
  * Build & Run with these commands:
         
         ```
-        sudo apt-get install mono-devel
-        sudo apt-get install mono-gmcs
+        sudo apt-get install mono-devel mono-gmcs
         git clone https://github.com/xenovacivus/PathCAM.git
         cd PathCAM
         xbuild
