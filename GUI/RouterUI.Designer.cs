@@ -17,7 +17,7 @@
         private System.Windows.Forms.Button clearPathsButton;
         private System.Windows.Forms.ComboBox comboBox1;
         private System.Windows.Forms.Button saveGcodeButton;
-        private System.Windows.Forms.CheckBox checkBox1;
+        private System.Windows.Forms.CheckBox showRobotFormCheckbox;
         private System.Windows.Forms.PictureBox pictureBox1;
 
     }

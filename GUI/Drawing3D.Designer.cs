@@ -30,11 +30,11 @@
         {
             this.SuspendLayout();
             // 
-            // UserControl1
+            // Drawing3D
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Name = "UserControl1";
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
+            this.Name = "Drawing3D";
+            this.Size = new System.Drawing.Size(159, 121);
             this.Load += new System.EventHandler(this.UserControl1_Load);
             this.ResumeLayout(false);
 

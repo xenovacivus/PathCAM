@@ -162,7 +162,6 @@ namespace Serial
                                 TransmitPacketComplete();
                             }
                             return;
-                        break;
 
                         default:
                             // Shouldn't ever get here.

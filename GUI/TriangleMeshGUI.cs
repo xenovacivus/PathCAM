@@ -77,7 +77,7 @@ namespace GUI
                     tabs.Add(new TabsGUI(line, toolRadius, true));
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             this.Offset = offset; // Force the offset update in the tabs

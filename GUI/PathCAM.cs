@@ -159,7 +159,7 @@ namespace GUI
                     mesh.Draw();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -282,7 +282,7 @@ namespace GUI
             this.boundaryCheck = new System.Windows.Forms.Button();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.openFileButton = new System.Windows.Forms.Button();
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
+            this.showRobotFormCheckbox = new System.Windows.Forms.CheckBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.robotControl = new GUI.RobotControl();
             this.drawing3D = new GUI.Drawing3D();
@@ -371,16 +371,16 @@ namespace GUI
             this.openFileButton.UseVisualStyleBackColor = true;
             this.openFileButton.Click += new System.EventHandler(this.loadButton_Click);
             // 
-            // checkBox1
+            // showRobotFormCheckbox
             // 
-            this.checkBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Location = new System.Drawing.Point(0, 588);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(15, 14);
-            this.checkBox1.TabIndex = 69;
-            this.checkBox1.UseVisualStyleBackColor = true;
-            this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+            this.showRobotFormCheckbox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.showRobotFormCheckbox.AutoSize = true;
+            this.showRobotFormCheckbox.Location = new System.Drawing.Point(-1, 449);
+            this.showRobotFormCheckbox.Name = "showRobotFormCheckbox";
+            this.showRobotFormCheckbox.Size = new System.Drawing.Size(15, 14);
+            this.showRobotFormCheckbox.TabIndex = 69;
+            this.showRobotFormCheckbox.UseVisualStyleBackColor = true;
+            this.showRobotFormCheckbox.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
             // 
             // pictureBox1
             // 
@@ -395,9 +395,9 @@ namespace GUI
             // 
             this.robotControl.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.robotControl.BackColor = System.Drawing.Color.Transparent;
-            this.robotControl.Location = new System.Drawing.Point(0, 466);
+            this.robotControl.Location = new System.Drawing.Point(-1, 327);
             this.robotControl.Name = "robotControl";
-            this.robotControl.Size = new System.Drawing.Size(183, 136);
+            this.robotControl.Size = new System.Drawing.Size(169, 136);
             this.robotControl.TabIndex = 8;
             this.robotControl.Visible = false;
             // 
@@ -407,13 +407,14 @@ namespace GUI
             this.drawing3D.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.drawing3D.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.drawing3D.BackColor = System.Drawing.Color.Black;
             this.drawing3D.ClearColor = System.Drawing.Color.Empty;
-            this.drawing3D.Location = new System.Drawing.Point(0, -1);
+            this.drawing3D.Location = new System.Drawing.Point(472, 12);
             this.drawing3D.MinimumSize = new System.Drawing.Size(10, 10);
             this.drawing3D.Name = "drawing3D";
             this.drawing3D.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.drawing3D.Size = new System.Drawing.Size(986, 603);
+            this.drawing3D.Size = new System.Drawing.Size(100, 98);
             this.drawing3D.TabIndex = 68;
             this.drawing3D.VSync = false;
             // 
@@ -421,8 +422,8 @@ namespace GUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(986, 601);
-            this.Controls.Add(this.checkBox1);
+            this.ClientSize = new System.Drawing.Size(584, 462);
+            this.Controls.Add(this.showRobotFormCheckbox);
             this.Controls.Add(this.saveGcodeButton);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.clearPathsButton);
@@ -434,9 +435,10 @@ namespace GUI
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.drawing3D);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MinimumSize = new System.Drawing.Size(800, 600);
+            this.MinimumSize = new System.Drawing.Size(600, 500);
             this.Name = "PathCAM";
             this.Text = "PathCAM - Toolpath generation software for CNC robots";
+            this.Load += new System.EventHandler(this.PathCAM_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -460,7 +462,23 @@ namespace GUI
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
-            robotControl.Visible = checkBox1.Checked;
+            robotControl.Visible = showRobotFormCheckbox.Checked;
+        }
+
+        private void drawing3D_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void PathCAM_Load(object sender, EventArgs e)
+        {
+            // Programatically fill the entire client rectangle with the drawing area.
+            // This makes sure the size is independent of window border and makes
+            // editing the GUI in the designer much easier.
+            this.drawing3D.Location = new Point(0, 0);
+            this.drawing3D.Size = this.ClientRectangle.Size;
+            robotControl.Location = new Point(0, ClientRectangle.Height - robotControl.Height);
+            showRobotFormCheckbox.Location = new Point(0, ClientRectangle.Height - showRobotFormCheckbox.Height + 1);
         }
     }
 }

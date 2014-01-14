@@ -107,11 +107,11 @@ namespace GUI
                     port.Open(portName, baudRate);
                     connect.Text = "Disconnect";
                 }
-                catch (NullReferenceException ex)
+                catch (NullReferenceException)
                 {
                     MessageBox.Show("Error Opening Com Port: No Port Name Selected!");
                 }
-                catch (FormatException ex)
+                catch (FormatException)
                 {
                     MessageBox.Show("Error Opening Com Port: Invalid Baud Rate!");
                 }

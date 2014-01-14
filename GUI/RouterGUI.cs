@@ -125,7 +125,7 @@ namespace GUI
                 GL.PointSize(1);
                 GL.Enable(EnableCap.Lighting);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

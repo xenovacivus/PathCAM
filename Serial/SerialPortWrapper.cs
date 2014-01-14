@@ -173,7 +173,7 @@ namespace Serial
                     packet.ProcessDataChar(data);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
