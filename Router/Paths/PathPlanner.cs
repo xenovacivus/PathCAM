@@ -30,20 +30,44 @@ namespace Router.Paths
     public class PathPlanner
     {
         /// <summary>
-        /// Find a toolpath which will remove everything described in the slice.
+        /// Get slices from the top of the triangle mesh to the bottom, spaced no more than
+        /// the specified cut depth in router.  The first slice is the highest.
         /// </summary>
-        /// <param name="slice"></param>
-        public static void PlanPaths(Slice slice)
+        /// <param name="triangles"></param>
+        /// <param name="router"></param>
+        /// <returns></returns>
+        private static List<Slice> GetSlices(TriangleMesh triangles, Router router)
         {
-            // 1. Get all small holes in the slice - rout them first
-            // 2. Rout everything remaining in the slice from 
+            float maxCutDepth = router.MaxCutDepth;
+            float minZ = triangles.MinPoint.Z;
+            float maxZ = triangles.MaxPoint.Z;
+
+            float skin = 0.002f; // Depth above the minpoint and below the maxpoint to slice.
+
+            // Figure out an even maximum cut depth
+            int layers = (int)((maxZ - minZ) / maxCutDepth + 0.95f);
+            float actualCutDepth = (maxZ - minZ - 2*skin) / layers;
+            actualCutDepth = Math.Min(maxZ - minZ - 2*skin, actualCutDepth);
+
+            List<Slice> slices = new List<Slice>();
+
+            for (float height = maxZ - skin; height > -actualCutDepth / 2.0f; height -= actualCutDepth)
+            {
+                var slice = new Slice(triangles, new Plane(Vector3.UnitZ, new Vector3(0, 0, height)));
+                foreach (var higherSlice in slices)
+                {
+                    slice.Union(higherSlice);
+                }
+                slices.Add(slice);
+            }
+            return slices;
         }
 
         public static List<LineStrip> PlanPaths(TriangleMesh triangles, List<Tabs> tabs, Router router)
         {
             List<LineStrip> routs = new List<LineStrip>();
 
-            float toolRadius = router.ToolDiameter / 2.0f; // Router units are inches
+            float toolRadius = router.ToolDiameter / 2.0f;
             float maxCutDepth = router.MaxCutDepth;
             float lastPassHeight = router.LastPassHeight;
             float cleanPassFactor = 0.90f; // 90% of the tool radius will be removed on the clean pass
@@ -51,17 +75,30 @@ namespace Router.Paths
             float minZ = triangles.MinPoint.Z;
             float maxZ = triangles.MaxPoint.Z;
 
-            Slice boundary = new Slice(triangles, new Plane(Vector3.UnitZ, new Vector3(0, 0, minZ)));
+            var slices = GetSlices(triangles, router);
+            //GL.PushMatrix();
+            //foreach (var s in slices)
+            //{
+            //    GL.Translate(triangles.MaxPoint.X - triangles.MinPoint.X, 0, 0);
+            //    DrawSlice(Color.Orange, Color.Black, s);
+            //}
+            //GL.PopMatrix();
+            
+            Slice top = slices[0];
+            slices.RemoveAt(0);
+            Slice boundary = new Slice (slices[slices.Count - 1]);
+            
             boundary.Offset(toolRadius * (cleanPassFactor + 1.05f)); // Note: this is slightly larger to allow some polygon width to exist
+            
+            // Enable complete removal of holes with no tabs
             foreach (var tab in tabs)
             {
                 if (tab.TabLocations.Count() == 0)
                 {
-                    boundary.Add(tab.Boundary);
+                    boundary.Union(tab.Boundary);
                 }
             }
 
-            Slice top = new Slice(triangles, new Plane(Vector3.UnitZ, new Vector3(0, 0, maxZ)));
             top.SubtractFrom(boundary);
 
             //GL.PushMatrix();
@@ -70,7 +107,6 @@ namespace Router.Paths
             //GL.PopMatrix();
 
             Slice holes = top.PolygonsWithoutHoles();
-            
 
             List<Hole> holeRouts = new List<Hole>();
             foreach (var polygon in holes.IndividualPolygons())
@@ -78,21 +114,15 @@ namespace Router.Paths
                 holeRouts.Add(new Hole(polygon, toolRadius, cleanPassFactor));
             }
 
-            // Figure out a nice even maximum cut depth
-            int layers = (int)((maxZ - minZ) / maxCutDepth + 0.95f);
-            float actualCutDepth = (maxZ - minZ) / layers;
-            
-            for (float height = minZ; height < maxZ; height += actualCutDepth)
+            foreach (Slice current in slices)
             {
-                Slice current = new Slice(triangles, new Plane(Vector3.UnitZ, new Vector3(0, 0, height)));
                 current.Offset(toolRadius);
-                GL.PushMatrix();
-                GL.Translate(0, 0, -0.001f);
-                //DrawSlice(Color.Tan, Color.Gray, boundary);
-                GL.PopMatrix();
-                //DrawSlice(Color.Red, Color.Blue, current);
+                //GL.PushMatrix();
+                //GL.Translate(0, 0, -0.001f);
+                ////DrawSlice(Color.Tan, Color.Gray, boundary);
+                //GL.PopMatrix();
+                ////DrawSlice(Color.Red, Color.Blue, current);
 
-                
                 Slice original = new Slice(current);
                 current.SubtractFrom(boundary);
 
@@ -123,20 +153,20 @@ namespace Router.Paths
             
                 // Rout all outside paths.  These will be done from top down, one layer at a time for structural reasons.
                 // For the top several layers, two paths could be combined...
-                //var withHoles = outsidePairs.PolygonsWithHoles();
-                var outsideRouts = RoutAreasWithHoles(outsidePairs, toolRadius, cleanPassFactor, tabs, false);
+                var outsideRouts = RoutAreasWithHoles(insidePairs.PolygonsWithHoles(), toolRadius, cleanPassFactor, tabs, true);
                 var newLines = new List<LineStrip>();
                 foreach (var line in outsideRouts)
                 {
                     var r = new LineStrip();
                     r.AddRange(line.Vertices);
                     r.Append(line.Vertices[0]);
+                    r.Vertices.Reverse();
                     newLines.Add(r);
                 }
-                routs.InsertRange(0, newLines);
+                routs.AddRange(newLines);
 
 
-                outsideRouts = RoutAreasWithHoles(insidePairs.PolygonsWithHoles(), toolRadius, cleanPassFactor, tabs, true);
+                outsideRouts = RoutAreasWithHoles(outsidePairs, toolRadius, cleanPassFactor, tabs, false);
                 newLines = new List<LineStrip>();
                 foreach (var line in outsideRouts)
                 {
@@ -145,7 +175,7 @@ namespace Router.Paths
                     r.Append(line.Vertices[0]);
                     newLines.Add(r);
                 }
-                routs.InsertRange(0, newLines);
+                routs.AddRange(newLines);
             }
 
             foreach (var hole in holeRouts)
@@ -327,16 +357,16 @@ namespace Router.Paths
                 GL.PushMatrix();
                 Slice lastPolygon = null;
 
-                for (int i = polygons.Count - 1; i >= 0; i--)
+                foreach (var p in polygons)
                 {
-                    var p = polygons[i];
                     var routLast = p.GetLines(Slice.LineType.Outside).First(s => true);
                     routLast.Vertices.Add(routLast.Vertices[0]);
+                    routLast.Vertices.Reverse();
 
                     Slice obliterate = new Slice(p);
                     obliterate.Offset(-toolRadius * cleanRoutFactor);
 
-                    var routFirst = PathTree.ObliterateSlice(obliterate, toolRadius * 2.0f);
+                    var routFirst = PathTree.ObliterateSlice(obliterate, toolRadius * 2.0f, true);
 
                     if (lastPolygon == null)
                     {
@@ -429,6 +459,7 @@ namespace Router.Paths
             private Slice slice;
             private List<PathTree> children = new List<PathTree>();
             private List<PathTree> badTrees;
+            private bool reverse;
 
             #region Public Methods
 
@@ -439,13 +470,13 @@ namespace Router.Paths
             /// <param name="polygons"></param>
             /// <param name="maxShrink">maximum distance between disjoint paths</param>
             /// <returns></returns>
-            public static List<LineStrip> ObliterateSlice(Slice polygons, float maxShrink)
+            public static List<LineStrip> ObliterateSlice(Slice polygons, float maxShrink, bool reverse = false)
             {
                 List<LineStrip> lines = new List<LineStrip>();
 
                 foreach (Slice slice in polygons.IndividualPolygons())
                 {
-                    PathTree tree = new PathTree();
+                    PathTree tree = new PathTree(reverse);
                     Slice inside = new Slice(slice.GetLines(Slice.LineType.Hole), slice.Plane);
                     Slice shrink = new Slice(slice);
                     while (shrink.Area() > 0)
@@ -474,21 +505,28 @@ namespace Router.Paths
 
             #region Private Methods
 
-            private PathTree()
+            private PathTree(bool reverse)
             {
                 slice = null;
                 badTrees = new List<PathTree>();
+                this.reverse = reverse;
             }
 
             private PathTree(Slice slice, PathTree parent)
             {
                 this.badTrees = parent.badTrees;
                 this.slice = slice;
+                this.reverse = parent.reverse;
             }
 
             private LineStrip CreatePath()
             {
-                return slice.GetLines(Geometry.Slice.LineType.Outside).First(s => true);
+                var path = slice.GetLines(Geometry.Slice.LineType.Outside).First(s => true);
+                if (reverse)
+                {
+                    path.Vertices.Reverse();
+                }
+                return path;
             }
 
             private void Draw(Color lineColor, Color planeColor)

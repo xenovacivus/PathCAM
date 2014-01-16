@@ -85,7 +85,7 @@ namespace Geometry
                 else
                 {
                     Slice s = new Slice(lineHandler.GetOuterLoops(), plane);
-                    this.Add(s);
+                    this.Union(s);
                 }
             }
             //GL.End();
@@ -760,7 +760,7 @@ namespace Geometry
             return s;
         }
 
-        public void Add(Slice other)
+        public void Union(Slice other)
         {
             Clipper c = new Clipper();
             c.Clear();

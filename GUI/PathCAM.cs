@@ -149,7 +149,9 @@ namespace GUI
             e.Result = triangleMesh;
         }
 
-        
+        // For debugging, generate paths for the first loaded
+        // trianglemesh every frame (allows drawing code inside the generation)
+        //TriangleMeshGUI m = null;
         void IOpenGLDrawable.Draw()
         {
             try
@@ -157,7 +159,15 @@ namespace GUI
                 foreach (var mesh in inProgressMeshes)
                 {
                     mesh.Draw();
+                    //if (m == null)
+                    //{
+                    //    m = mesh;
+                    //}
                 }
+                //if (m != null)
+                //{
+                //    PathPlanner.PlanPaths(m, m.Tabs.ConvertAll(tab => tab as Tabs), router);
+                //}
             }
             catch (Exception)
             {
@@ -375,7 +385,7 @@ namespace GUI
             // 
             this.showRobotFormCheckbox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.showRobotFormCheckbox.AutoSize = true;
-            this.showRobotFormCheckbox.Location = new System.Drawing.Point(-1, 449);
+            this.showRobotFormCheckbox.Location = new System.Drawing.Point(-1, 549);
             this.showRobotFormCheckbox.Name = "showRobotFormCheckbox";
             this.showRobotFormCheckbox.Size = new System.Drawing.Size(15, 14);
             this.showRobotFormCheckbox.TabIndex = 69;
@@ -395,7 +405,7 @@ namespace GUI
             // 
             this.robotControl.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.robotControl.BackColor = System.Drawing.Color.Transparent;
-            this.robotControl.Location = new System.Drawing.Point(-1, 327);
+            this.robotControl.Location = new System.Drawing.Point(-1, 427);
             this.robotControl.Name = "robotControl";
             this.robotControl.Size = new System.Drawing.Size(169, 136);
             this.robotControl.TabIndex = 8;
@@ -414,7 +424,7 @@ namespace GUI
             this.drawing3D.MinimumSize = new System.Drawing.Size(10, 10);
             this.drawing3D.Name = "drawing3D";
             this.drawing3D.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.drawing3D.Size = new System.Drawing.Size(100, 98);
+            this.drawing3D.Size = new System.Drawing.Size(300, 198);
             this.drawing3D.TabIndex = 68;
             this.drawing3D.VSync = false;
             // 
@@ -422,7 +432,7 @@ namespace GUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(584, 462);
+            this.ClientSize = new System.Drawing.Size(784, 562);
             this.Controls.Add(this.showRobotFormCheckbox);
             this.Controls.Add(this.saveGcodeButton);
             this.Controls.Add(this.button2);

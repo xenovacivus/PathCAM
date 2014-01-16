@@ -121,6 +121,7 @@ namespace Robot
         {
             lock (thisLock)
             {
+                elapsedCounter = 0;
                 if (currentCommand == null)
                 {
                     Console.WriteLine("Error: Received data, but no command was sent!");
@@ -173,7 +174,7 @@ namespace Robot
 
                         currentCommand = GetNextCommand(locations);
 
-                        elapsedCounter = 0;
+                        
                         serial.Transmit(currentCommand.GenerateCommand(), 0x21);
                     }
                     else
