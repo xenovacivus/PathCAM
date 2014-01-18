@@ -4,10 +4,16 @@ namespace Commands
 {
     public class MoveTool : ICommand
     {
-        private Vector3 target; // Target location in inches
-        private float speed;    // Moving speed in inches per minute
+        public enum SpeedType
+        {
+            Cutting,
+            Rapid,
+        }
 
-        public MoveTool(Vector3 target, float speed)
+        private Vector3 target; // Target location in inches
+        private SpeedType speed;
+
+        public MoveTool(Vector3 target, SpeedType speed)
         {
             this.target = target;
             this.speed = speed;
@@ -16,11 +22,13 @@ namespace Commands
         public Vector3 Target
         {
             get { return target; }
+            set { target = value; }
         }
 
-        public float Speed 
+        public SpeedType Speed
         {
-            get { return speed; } 
+            get { return speed; }
+            set { speed = value; }
         }
     }
 }

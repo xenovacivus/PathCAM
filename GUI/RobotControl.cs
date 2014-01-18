@@ -35,6 +35,11 @@ namespace GUI
             this.robot.onRobotStatusChange += new EventHandler(RobotStatusUpdate);
         }
 
+        public Robot.Robot GetRobot()
+        {
+            return robot;
+        }
+
         void RobotStatusUpdate(object o, EventArgs e)
         {
             if (this.InvokeRequired && !this.Disposing)
@@ -165,8 +170,8 @@ namespace GUI
         {
             robot.CancelPendingCommands();
             Vector3 position = robot.GetPosition();
-            robot.AddCommand(new MoveTool(new Vector3(position.X, position.Y, router.MoveHeight), router.MoveSpeed));
-            robot.AddCommand(new MoveTool(new Vector3(0, 0, router.MoveHeight), router.MoveSpeed));
+            robot.AddCommand(new MoveTool(new Vector3(position.X, position.Y, router.MoveHeight), MoveTool.SpeedType.Rapid));
+            robot.AddCommand(new MoveTool(new Vector3(0, 0, router.MoveHeight), MoveTool.SpeedType.Rapid));
             robot.SendResumeCommand();
             this.pause_resume_button.Enabled = false;
             this.cancelButton.Enabled = false;
@@ -195,7 +200,7 @@ namespace GUI
         private void zGo_Click(object sender, EventArgs e)
         {
             float f = float.Parse(zbox.Text);
-            MoveTool move = new MoveTool(new Vector3(0, 0, f), router.MoveSpeed);
+            MoveTool move = new MoveTool(new Vector3(0, 0, f), MoveTool.SpeedType.Rapid);
             robot.AddCommand(move);
         }
 

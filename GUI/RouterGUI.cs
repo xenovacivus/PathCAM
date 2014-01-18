@@ -38,57 +38,6 @@ namespace GUI
         {
         }
 
-        ///
-        /// Accessors for the property grid
-        ///
-        [DisplayName("Last Pass Height")]
-        [Description("Height of the last pass in inches")]
-        new public float LastPassHeight
-        {
-            get { return base.LastPassHeight; }
-            set { base.LastPassHeight = value; }
-        }
-
-        [DisplayName("Tool Diameter")]
-        [Description("Tool Diameter in inches")]
-        new public float ToolDiameter
-        {
-            get { return base.ToolDiameter; }
-            set { base.ToolDiameter = value; }
-        }
-
-        [DisplayName("Routing Speed")]
-        [Description("Rout Speed (inches per minute)")]
-        new public float RoutSpeed
-        {
-            get { return base.RoutSpeed; }
-            set { base.RoutSpeed = value; }
-        }
-
-        [DisplayName("Moving Speed")]
-        [Description("Moving speed (inches per minute)")]
-        new public float MoveSpeed
-        {
-            get { return base.MoveSpeed; }
-            set { base.MoveSpeed = value; }
-        }
-
-        [DisplayName("Move Height")]
-        [Description("Safe travel height")]
-        new public float MoveHeight
-        {
-            get { return base.MoveHeight; }
-            set { base.MoveHeight = value; }
-        }
-
-        [DisplayName("Max Cut Depth")]
-        [Description("Maximum Cut Depth")]
-        new public float MaxCutDepth
-        {
-            get { return base.MaxCutDepth; }
-            set { base.MaxCutDepth = value; }
-        }
-
         void IOpenGLDrawable.Draw()
         {
             try

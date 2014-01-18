@@ -26,21 +26,25 @@ namespace GUI
         private RouterGUI router;
         private string dragDropFilename = null;
         private Regex acceptedFileRegex = new Regex(@".*(\.dae|\.obj|\.stl|\.nc|\.gcode)", RegexOptions.IgnoreCase);
+        private Settings settings;
 
         public PathCAM()
         {
             InitializeComponent();
 
             router = new RouterGUI();
-            propertyGrid.SelectedObject = router;
             drawing3D.AddObject(router);
             robotControl.AssignRouter(router);
+            
             drawing3D.AddObject(robotControl);
             drawing3D.AddObject(this);
             drawing3D.DragDrop += this.Drawing3D_DragDrop;
             drawing3D.DragOver += this.Drawing3D_DragOver;
             drawing3D.DragEnter += this.Drawing3D_DragEnter;
             drawing3D.DragLeave += this.Drawing3D_DragLeave;
+            
+            settings = new Settings(robotControl.GetRobot(), router);
+            propertyGrid.SelectedObject = settings;
         }
  
         void Drawing3D_DragLeave(object sender, EventArgs e)
@@ -313,10 +317,10 @@ namespace GUI
             // propertyGrid
             // 
             this.propertyGrid.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.propertyGrid.Location = new System.Drawing.Point(12, 128);
+            this.propertyGrid.Location = new System.Drawing.Point(12, 157);
             this.propertyGrid.Name = "propertyGrid";
             this.propertyGrid.PropertySort = System.Windows.Forms.PropertySort.NoSort;
-            this.propertyGrid.Size = new System.Drawing.Size(183, 163);
+            this.propertyGrid.Size = new System.Drawing.Size(183, 205);
             this.propertyGrid.TabIndex = 5;
             this.propertyGrid.ToolbarVisible = false;
             // 
@@ -363,7 +367,7 @@ namespace GUI
             "25.4:1 (millimeters)",
             ".254:1 (meters)",
             "1:12 (feet)"});
-            this.comboBox1.Location = new System.Drawing.Point(87, 299);
+            this.comboBox1.Location = new System.Drawing.Point(87, 129);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(107, 21);
             this.comboBox1.TabIndex = 7;
@@ -373,7 +377,7 @@ namespace GUI
             // openFileButton
             // 
             this.openFileButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.openFileButton.Location = new System.Drawing.Point(12, 297);
+            this.openFileButton.Location = new System.Drawing.Point(12, 128);
             this.openFileButton.Name = "openFileButton";
             this.openFileButton.Size = new System.Drawing.Size(70, 23);
             this.openFileButton.TabIndex = 6;
@@ -394,8 +398,8 @@ namespace GUI
             // 
             // pictureBox1
             // 
-            this.pictureBox1.BackColor = System.Drawing.SystemColors.ActiveBorder;
-            this.pictureBox1.Location = new System.Drawing.Point(86, 298);
+            this.pictureBox1.BackColor = System.Drawing.Color.Black;
+            this.pictureBox1.Location = new System.Drawing.Point(86, 128);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(109, 23);
             this.pictureBox1.TabIndex = 70;
@@ -473,11 +477,6 @@ namespace GUI
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
             robotControl.Visible = showRobotFormCheckbox.Checked;
-        }
-
-        private void drawing3D_Load(object sender, EventArgs e)
-        {
-
         }
 
         private void PathCAM_Load(object sender, EventArgs e)

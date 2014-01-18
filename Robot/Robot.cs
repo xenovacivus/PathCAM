@@ -31,21 +31,38 @@ namespace Robot
     {
         private Queue<ICommand> commands = new Queue<ICommand>();
         public EventHandler onRobotStatusChange;
+
+        private IRobotCommand currentCommand = null;
+        private SerialPortWrapper serial;
+        private Timer t;
+        private int elapsedCounter = 0;
+        private Vector3 currentPosition = new Vector3(0, 0, 0);
+        private Vector3 lastPosition = new Vector3(0, 0, 0);
+        private bool lastPositionKnown = false;
+
+        private const float minSpeed = 0.01f; // All speeds are clamped to this.
+        private float maxZSpeed = 30;
+        private float maxCutSpeed = 60.0f;
+        private float maxRapidSpeed = 250.0f;
+
         bool sendResumeCommand = false;
         bool sendPauseCommand = false;
         bool sendCancelCommand = false;
         bool sendEnableStepperCommand = false;
         bool sendDisableStepperCommand = false;
+        
         public void SendPauseCommand()
         {
             sendPauseCommand = true;
             sendResumeCommand = false;
         }
+
         public void SendResumeCommand()
         {
             sendResumeCommand = true;
             sendPauseCommand = false;
         }
+
         public void CancelPendingCommands()
         {
             sendCancelCommand = true;
@@ -54,26 +71,49 @@ namespace Robot
                 commands.Clear();
             }
         }
+
         public void EnableMotors()
         {
             sendDisableStepperCommand = false;
             sendEnableStepperCommand = true;
         }
+
         public void DisableMotors()
         {
             sendEnableStepperCommand = false;
             sendDisableStepperCommand = true;
         }
 
-        IRobotCommand currentCommand = null;
-        SerialPortWrapper serial;
-        Timer t;
-        int elapsedCounter = 0;
+        public Vector3 GetPosition()
+        {
+            return currentPosition;
+        }
 
-        Vector3 currentPosition = new Vector3(0, 0, 0);
+        public void AddCommand(ICommand command)
+        {
+            commands.Enqueue(command);
+        }
 
-        Vector3 lastPosition = new Vector3(0, 0, 0);
-        bool lastPositionKnown = false;
+
+        public float MaxZSpeed
+        {
+            get { return maxZSpeed; }
+            set { maxZSpeed = Math.Max(value, minSpeed); }
+        }
+
+        public float MaxCutSpeed
+        {
+            get { return maxCutSpeed; }
+            set { maxCutSpeed = Math.Max(value, minSpeed); }
+        }
+
+        public float MaxRapidSpeed
+        {
+            get { return maxRapidSpeed; }
+            set { maxRapidSpeed = Math.Max(value, minSpeed); }
+        }
+
+
 
         public Robot(SerialPortWrapper serial)
         {
@@ -97,6 +137,9 @@ namespace Robot
                     if ((elapsedCounter * 50) > (1000)) // More than 1 second to reply
                     {
                         Console.WriteLine("Device Timeout!");
+                        
+                        // Assume disconnected, won't give another move command until the position is known
+                        lastPositionKnown = false;
 
                         // Send a status command
                         currentCommand = new StatusCommand();
@@ -109,8 +152,6 @@ namespace Robot
             t.Start();
         }
 
-        #region Serial Interface Callbacks
-        
         private void ReceiveDataError(byte err)
         {
             Console.WriteLine("Data Error: " + err);
@@ -136,8 +177,6 @@ namespace Robot
                     currentCommand.ProcessResponse(packet.Data);
                     if (currentCommand.IsDataValid())
                     {
-                        // See if there's any state information in the command used to 
-                        // update location or other fields...
                         int locations = 0;
                         if (currentCommand is StatusCommand)
                         {
@@ -151,30 +190,14 @@ namespace Robot
                             }
                             if (onRobotStatusChange != null)
                             {
-                                //onPositionUpdate(new object[] { currentPosition, c.time }, EventArgs.Empty);
                                 onRobotStatusChange(c, EventArgs.Empty);
                             }
                         }
                         if (currentCommand is MoveCommand)
                         {
-                            MoveCommand m = currentCommand as MoveCommand;
-                            locations = m.Locations;
-                            currentPosition = m.CurrentPosition;
-                            if (this.lastPositionKnown == false)
-                            {
-                                lastPosition = currentPosition;
-                                lastPositionKnown = true;
-                            }
-                            if (onRobotStatusChange != null)
-                            {
-                                //onPositionUpdate(new object[] { currentPosition, m.time }, EventArgs.Empty);
-                                onRobotStatusChange(m, EventArgs.Empty);
-                            }
                         }
 
                         currentCommand = GetNextCommand(locations);
-
-                        
                         serial.Transmit(currentCommand.GenerateCommand(), 0x21);
                     }
                     else
@@ -184,8 +207,6 @@ namespace Robot
                 }
             }
         }
-
-        #endregion
 
         private IRobotCommand GetNextCommand(int locations)
         {
@@ -216,29 +237,17 @@ namespace Robot
                 currentCommand = new StepperDisableCommand();
                 sendDisableStepperCommand = false;
             }
-            else if (locations > 0)
+            else if (locations > 0 && lastPositionKnown)
             {
                 while (currentCommand == null && commands.Count > 0)
                 {
                     ICommand command = commands.Dequeue();
                     if (command is MoveTool)
                     {
-                        MoveTool m = command as MoveTool;
-                        GoTo(m.Target, m.Speed);
+                        currentCommand = CreateRobotCommand(command as MoveTool);
                     }
                 }
             }
-
-            //if (currentCommand == null && locations > 0)
-            //{
-            //    // Ok to pass in another movement command
-            //    // TODO: rework this to use a local buffer...
-            //    if (onRobotReady != null)
-            //    {
-            //        onRobotReady(this, EventArgs.Empty);
-            //    }
-            //}
-
             if (currentCommand == null)
             {
                 currentCommand = new StatusCommand();
@@ -246,69 +255,37 @@ namespace Robot
             
             return currentCommand;
         }
-
-        public Vector3 GetPosition()
-        {
-            return currentPosition;
-        }
-
-        public void AddCommand(ICommand command)
-        {
-            commands.Enqueue(command);
-        }
         
         /// <summary>
-        /// Run the router from the current position to the given position
+        /// Create a robot command from a MoveTool command.  Adjusts for robot specific
+        /// max speeds.  May return null if there is no effective move.
         /// </summary>
-        /// <param name="p">Destination location in inches</param>
-        /// <param name="inches_per_minute">Tool speed in inches per second</param>
-        private void GoTo(Vector3 p, float inches_per_minute)
+        /// <param name="m"></param>
+        /// <returns></returns>
+        private IRobotCommand CreateRobotCommand(MoveTool m)
         {
-            lock (thisLock)
+            var p = m.Target;
+
+            float inches_per_minute = m.Speed == MoveTool.SpeedType.Cutting ? MaxCutSpeed : MaxRapidSpeed;
+
+            Vector3 delta = lastPosition - p;
+            lastPosition = p;
+
+            if (delta.Length > 0)
             {
-                if (this.lastPositionKnown == false)
+                if (Math.Abs(delta.Z) > 0.0001f)
                 {
-                    inches_per_minute = Math.Min(MaxInchesPerMinute.X, Math.Min(MaxInchesPerMinute.Y, MaxInchesPerMinute.Z));
+                    inches_per_minute = Math.Min(MaxZSpeed, inches_per_minute);
                 }
-                Vector3 delta = lastPosition - p;
-                lastPosition = p;
-                lastPositionKnown = true;
 
-                float inches = delta.Length;
-
-                UInt16 time_milliseconds = (UInt16)(1000 * 60 * inches / inches_per_minute);
-
-                if (delta.Length > 0)
-                {
-                    if (Math.Abs(delta.X) > 0.0001f)
-                    {
-                        inches_per_minute = Math.Min(MaxInchesPerMinute.X, inches_per_minute);
-                    }
-                    if (Math.Abs(delta.Y) > 0.0001f)
-                    {
-                        inches_per_minute = Math.Min(MaxInchesPerMinute.Y, inches_per_minute);
-                    }
-                    if (Math.Abs(delta.Z) > 0.0001f)
-                    {
-                        inches_per_minute = Math.Min(MaxInchesPerMinute.Z, inches_per_minute);
-                    }
-
-                    currentCommand = new MoveCommand(p, inches_per_minute / 60.0f);
-                }
-                else
-                {
-                    Console.WriteLine("Ignoring command with time of 0");
-                }
+                return new MoveCommand(p, inches_per_minute / 60.0f);
+            }
+            else
+            {
+                Console.WriteLine("Ignoring command with length of 0");
+                return null;
             }
         }
-
-        
-
-        Vector3 MaxInchesPerMinute
-        {
-            get { return new Vector3(400, 400, 40); }
-        }
-
 
     }
 }

@@ -47,13 +47,20 @@ namespace Router
                     {
                         // Rapid positioning or linear interpolation
                         // Go to X, Y, Z at feedrate F.
+                        Vector3 fromPoint = new Vector3(x, y, z);
                         GetFloat(s, "F", ref speed);
                         GetFloat(s, "X", ref x);
                         GetFloat(s, "Y", ref y);
                         GetFloat(s, "Z", ref z);
                         Vector3 toPoint = new Vector3(x, y, z);
 
-                        commands.Add(new MoveTool(toPoint * scale, speed * scale));
+                        // If the XYZ params weren't specified or didn't change, don't do a move.
+                        // If only speed changed, that's ok; it has been updated for the next move.
+                        if ((toPoint - fromPoint).Length > 0)
+                        {
+                            var speedType = g_value == 0 ? MoveTool.SpeedType.Rapid : MoveTool.SpeedType.Cutting;
+                            commands.Add(new MoveTool(toPoint * scale, speedType));
+                        }
                         
                     }
                     else if (g_value == 4)
@@ -91,6 +98,12 @@ namespace Router
                 file.WriteLine("G20 (Units are Inches)");
                 file.WriteLine("G90 (Absolute Positioning)");
                 file.WriteLine("G94 (Units per Minute feed rate)");
+                
+                // TODO: paramaterize these
+                float rapidSpeed = 50.0f;
+                float cuttingSpeed = 25.0f;
+                float plungeSpeed = 10.0f;
+
                 float lastSpeed = -1;
                 float lastHeight = 0;
                 float scale = 1.0f;
@@ -99,20 +112,24 @@ namespace Router
                     if (command is MoveTool)
                     {
                         MoveTool m = command as MoveTool;
-                        float speed = m.Speed * scale;
+                        float speed = m.Speed == MoveTool.SpeedType.Cutting ? cuttingSpeed * scale : rapidSpeed * scale;
+                        var gCommand = m.Speed == MoveTool.SpeedType.Cutting ? "G1" : "G0";
+                        
                         Vector3 target = m.Target * scale;
                         float height = target.Z;
                         if ((height + 0.001f) < lastHeight)
                         {
-                            speed = Math.Min(10.0f, speed); // Maximum plunge speed is 10 inches per minute (make a parameter...)
+                            speed = Math.Min(plungeSpeed, speed);
                         }
                         lastHeight = height;
                         if (lastSpeed != speed)
                         {
                             lastSpeed = speed;
-                            file.WriteLine("G1 F{0:F4}", speed);
+                            file.WriteLine("{0} F{1:F4}", gCommand, speed);
                         }
-                        file.WriteLine("G1 X{0:F4} Y{1:F4} Z{2:F4}", target.X, target.Y, target.Z);
+                        
+                        file.WriteLine("{0} X{1:F4} Y{2:F4} Z{3:F4}", gCommand, target.X, target.Y, target.Z);
+                        
                     }
                 }
             }

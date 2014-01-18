@@ -37,8 +37,6 @@ namespace Router
 
         private float toolDiameter = 0.120f;
         private float move_height = 0.525f; // How high above the surface to move the router
-        private float move_speed = 250; // Moving speed (inches per minute)
-        private float rout_speed = 45; // Routing speed (inches per minute)
         private float max_cut_depth = 1.0f / 8.0f; // Maximum cut depth in inches
         private float lastPassHeight = -.020f; // Height of the last rout
 
@@ -54,11 +52,11 @@ namespace Router
 
         public void AddCommand(ICommand r)
         {
-            commands.Add(r);
             if (r is MoveTool)
             {
                 finalPosition = (r as MoveTool).Target;
             }
+            commands.Add(r);
         }
 
         public void ClearCommands()
@@ -76,18 +74,6 @@ namespace Router
         {
             get { return toolDiameter; }
             set { if (value > 0.0f) { toolDiameter = value; } }
-        }
-
-        public float RoutSpeed
-        {
-            get { return rout_speed; }
-            set { if (value > 0) { rout_speed = value; } }
-        }
-        
-        public float MoveSpeed
-        {
-            get { return move_speed; }
-            set { if (value > 0) { move_speed = value; } }
         }
         
         public float MoveHeight
@@ -111,7 +97,7 @@ namespace Router
                 // TODO: Pick some unit and stick with it!  Inches would be fine.
                 Vector3 pointOffset = point + offset;
                 
-                MoveTool m = new MoveTool(pointOffset, rout_speed);
+                MoveTool m = new MoveTool(pointOffset, MoveTool.SpeedType.Cutting);
                 if (first)
                 {
                     first = false;
@@ -119,8 +105,8 @@ namespace Router
                     if ((finalPosition.Xy - pointOffset.Xy).Length > .0001)
                     {
                         // Need to move the router up, over to new position, then down again.
-                        MoveTool m1 = new MoveTool(new Vector3(finalPosition.X, finalPosition.Y, move_height), move_speed);
-                        MoveTool m2 = new MoveTool(new Vector3(m.Target.X, m.Target.Y, move_height), move_speed);
+                        MoveTool m1 = new MoveTool(new Vector3(finalPosition.X, finalPosition.Y, move_height), MoveTool.SpeedType.Rapid);
+                        MoveTool m2 = new MoveTool(new Vector3(m.Target.X, m.Target.Y, move_height), MoveTool.SpeedType.Rapid);
                         AddCommand(m1);
                         AddCommand(m2);
                     }
@@ -136,13 +122,13 @@ namespace Router
         {
             if (finalPosition.Z < move_height)
             {
-                AddCommand(new MoveTool(new Vector3(finalPosition.X, finalPosition.Y, move_height), move_speed));
+                AddCommand(new MoveTool(new Vector3(finalPosition.X, finalPosition.Y, move_height), MoveTool.SpeedType.Rapid));
             }
             else
             {
-                AddCommand(new MoveTool(new Vector3(0, 0, finalPosition.Z), move_speed));
+                AddCommand(new MoveTool(new Vector3(0, 0, finalPosition.Z), MoveTool.SpeedType.Rapid));
             }
-            AddCommand(new MoveTool(new Vector3(0, 0, move_height), move_speed));
+            AddCommand(new MoveTool(new Vector3(0, 0, move_height), MoveTool.SpeedType.Rapid));
         }
     }
 }
