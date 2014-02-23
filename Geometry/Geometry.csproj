@@ -48,6 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnalyzedTriangleMesh.cs" />
     <Compile Include="Intersect.cs" />
     <Compile Include="LineSegment.cs" />
     <Compile Include="LineStrip.cs" />

@@ -42,7 +42,7 @@ namespace Robot
 
         private const float minSpeed = 0.01f; // All speeds are clamped to this.
         private float maxZSpeed = 30;
-        private float maxCutSpeed = 60.0f;
+        private float maxCutSpeed = 100.0f;
         private float maxRapidSpeed = 250.0f;
 
         bool sendResumeCommand = false;

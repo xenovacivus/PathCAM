@@ -197,7 +197,7 @@ namespace Router.Paths
                 for (int i = 0; i < r.Vertices.Count; i++)
                 {
                     var point = r.Vertices[i];
-                    if (point.Z < (minZ + .0001f))
+                    if (point.Z < (minZ + .005f))
                     {
                         r.Vertices[i] = new Vector3(point.X, point.Y, lastPassHeight);
                     }

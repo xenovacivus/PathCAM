@@ -33,13 +33,13 @@ namespace Geometry
     public class TriangleMesh
     {
         private float epsilon = 0.0001f; // Distance between vertices considered to be unique - set to a value valid for inches.
-        private List<Vector3> vertices;
+        protected List<Vector3> vertices;
         private Vector3 minPoint = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
         private Vector3 maxPoint = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
-        private List<TriangleIndices> triangles;
+        protected List<TriangleIndices> triangles;
         private List<Edge> segments;
 
-        internal class TriangleIndices
+        public class TriangleIndices
         {
             public int a, b, c;
             public List<Edge> edges = new List<Edge>(3);
@@ -57,6 +57,10 @@ namespace Geometry
                     }
                 }
                 return index;
+            }
+            public override string ToString()
+            {
+                return string.Format("{0}, {1}, {2}", a, b, c);
             }
         }
         public class Edge
@@ -209,10 +213,13 @@ namespace Geometry
 
         private void SetTriangleEdgePointers(TriangleIndices tri)
         {
+            // Remove the reference to this triangle from all edges
             foreach (var edge in tri.edges)
             {
                 edge.triangles.RemoveAll(t => t == tri);
             }
+
+            // Then rebuild the edges
             tri.edges.Clear();
             tri.edges.Add(AddEdge(tri.a, tri.b));
             tri.edges.Add(AddEdge(tri.b, tri.c));

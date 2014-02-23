@@ -192,6 +192,20 @@ namespace GUI
                 foreach (Triangle t in base.Triangles)
                 {
                     GL.Normal3(t.Plane.Normal);
+                    var dot = Vector3.Dot(t.Plane.Normal, Vector3.UnitZ);
+                    if (dot >= 0.999f)
+                    {
+                        GL.Color3(Color.Orange);
+                    }
+                    else if (dot > 0.001f)
+                    {
+                        GL.Color3(Color.Yellow);
+                    }
+                    else
+                    {
+                        GL.Color3(Color.DarkRed);
+                    }
+
                     foreach (Vector3 v in t.Vertices)
                     {
                         GL.Vertex3(v);
@@ -259,6 +273,41 @@ namespace GUI
                 }
                 GL.Enable(EnableCap.Lighting);
             }
+
+
+            // Mesh analysis testing...
+            //GL.PushMatrix();
+            //GL.Translate(10, 0, 0);
+            //AnalyzedTriangleMesh test = new AnalyzedTriangleMesh(this);
+            //var meshes = test.Analyze();
+            //foreach (var mesh in meshes)
+            //{
+            //    GL.Begin(PrimitiveType.Triangles);
+            //    foreach (Triangle t in mesh.Triangles)
+            //    {
+            //        GL.Normal3(t.Plane.Normal);
+            //        var dot = Vector3.Dot(t.Plane.Normal, Vector3.UnitZ);
+            //        if (dot >= 0.999f)
+            //        {
+            //            GL.Color3(Color.Orange);
+            //        }
+            //        else if (dot > 0.001f)
+            //        {
+            //            GL.Color3(Color.Yellow);
+            //        }
+            //        else
+            //        {
+            //            GL.Color3(Color.DarkRed);
+            //        }
+            //
+            //        foreach (Vector3 v in t.Vertices)
+            //        {
+            //            GL.Vertex3(v);
+            //        }
+            //    }
+            //    GL.End();
+            //}
+            //GL.PopMatrix();
 
             // Draw the lines connected to the closest line to the cursor (debugging)
             //if (closestEdge != null)
