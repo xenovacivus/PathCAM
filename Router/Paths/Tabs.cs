@@ -68,6 +68,12 @@ namespace Router.Paths
             }
         }
 
+        public float TabHeight
+        {
+            get { return tabHeight; }
+            set { tabHeight = value; }
+        }
+
         public Slice Boundary
         {
             get { return originalBoundary; }

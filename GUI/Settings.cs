@@ -21,6 +21,13 @@ namespace GUI
             this.robot = robot;
         }
 
+        [DisplayName("Tab Height")]
+        [Description("Height of the tabs in inches")]
+        public float TabHeight
+        {
+            get { return router.TabHeight; }
+            set { router.TabHeight = value; }
+        }
 
         ///
         /// Accessors for the property grid

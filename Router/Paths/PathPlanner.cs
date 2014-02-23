@@ -67,6 +67,11 @@ namespace Router.Paths
         {
             List<LineStrip> routs = new List<LineStrip>();
 
+            foreach (Tabs tab in tabs)
+            {
+                tab.TabHeight = router.TabHeight;
+            }
+
             float toolRadius = router.ToolDiameter / 2.0f;
             float maxCutDepth = router.MaxCutDepth;
             float lastPassHeight = router.LastPassHeight;

@@ -39,6 +39,8 @@ namespace Router
         private float move_height = 0.550f; // How high above the surface to move the router
         private float max_cut_depth = .250f; // Maximum cut depth in inches
         private float lastPassHeight = -.020f; // Height of the last rout
+        float tabHeight = 0.050f;
+        
 
         public Router()
         {
@@ -62,6 +64,12 @@ namespace Router
         public void ClearCommands()
         {
             commands.Clear();
+        }
+
+        public float TabHeight
+        {
+            get { return tabHeight; }
+            set { tabHeight = value; }
         }
 
         public float LastPassHeight
@@ -130,5 +138,7 @@ namespace Router
             }
             AddCommand(new MoveTool(new Vector3(0, 0, move_height), MoveTool.SpeedType.Rapid));
         }
+
+        
     }
 }
