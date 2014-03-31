@@ -67,7 +67,7 @@ namespace GUI
             tabs.Clear();
             try
             {
-                Slice s = new Slice(this, new Plane(Vector3.UnitZ, new Vector3(0, 0, MinPoint.Z)));
+                Slice s = new Slice(this, new Plane(Vector3.UnitZ, new Vector3(0, 0, MinPoint.Z + 0.002f)));
                 foreach (var line in s.GetLines(Slice.LineType.Outside))
                 {
                     tabs.Add(new TabsGUI(line, toolRadius, false));
