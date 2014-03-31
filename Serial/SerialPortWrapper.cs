@@ -142,10 +142,10 @@ namespace Serial
             port.Encoding = System.Text.Encoding.Default;
 
             // Earlier versions of Mono don't fire this event, so poll instead.
-            port.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
+            //port.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
             System.Timers.Timer t = new System.Timers.Timer(10);
-            //t.Elapsed += t_Elapsed;
-            //t.Start();
+            t.Elapsed += t_Elapsed;
+            t.Start();
         }
 
         void t_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
