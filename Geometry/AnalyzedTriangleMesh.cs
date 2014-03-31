@@ -17,6 +17,60 @@ namespace Geometry
             }
         }
 
+        /// <summary>
+        /// Split a mesh into meshes of connected triangles
+        /// </summary>
+        /// <returns></returns>
+        public List<TriangleMesh> SplitDisconnected()
+        {
+            List<TriangleMesh> meshes = new List<TriangleMesh>();
+
+            List<TriangleIndices> tempTriangles = new List<TriangleIndices>();
+
+            tempTriangles = triangles.ToList();
+
+            while(tempTriangles.Count > 0)
+            {
+                var mesh = new TriangleMesh();
+                var first = tempTriangles[0];
+                var connected = GetConnected(ref tempTriangles, first);
+                foreach (var indices in connected)
+                {
+                    mesh.AddTriangle(new Triangle(vertices[indices.a], vertices[indices.b], vertices[indices.c]));
+                }
+                meshes.Add(mesh);
+            }
+
+            return meshes;
+        }
+
+        public List<TriangleIndices> GetConnected(ref List<TriangleIndices> tempTriangles, TriangleIndices first)
+        {
+            List<TriangleIndices> connected = new List<TriangleIndices>();
+            connected.Add(first);
+            tempTriangles.Remove(first);
+
+            foreach (var edge in first.edges)
+            {
+                foreach (var tri in edge.triangles)
+                {
+                    if (tempTriangles.Contains(tri))
+                    {
+                        connected.AddRange(GetConnected(ref tempTriangles, tri));
+                    }
+                }
+            }
+
+            return connected;
+        }
+
+        //public List<Triangles> GetTriangles(Predicate<Triangle> trianglePredicate)
+        //{
+        //
+        //}
+        //
+        //
+
         public List<TriangleMesh> Analyze()
         {
             List<TriangleMesh> meshes = new List<TriangleMesh>();

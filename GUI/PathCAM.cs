@@ -411,7 +411,7 @@ namespace GUI
             this.robotControl.BackColor = System.Drawing.Color.Transparent;
             this.robotControl.Location = new System.Drawing.Point(-1, 427);
             this.robotControl.Name = "robotControl";
-            this.robotControl.Size = new System.Drawing.Size(169, 136);
+            this.robotControl.Size = new System.Drawing.Size(273, 136);
             this.robotControl.TabIndex = 8;
             this.robotControl.Visible = false;
             // 

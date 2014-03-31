@@ -50,7 +50,20 @@ namespace Robot
         bool sendCancelCommand = false;
         bool sendEnableStepperCommand = false;
         bool sendDisableStepperCommand = false;
-        
+
+        bool sendZeroCommand = false;
+
+
+        public float z_offset = 0;
+
+
+
+        public void Zero()
+        {
+            sendZeroCommand = true;
+            // TODO: combine with logic for pause commands
+        }
+
         public void SendPauseCommand()
         {
             sendPauseCommand = true;
@@ -85,6 +98,11 @@ namespace Robot
         }
 
         public Vector3 GetPosition()
+        {
+            return currentPosition - new Vector3(0, 0, z_offset);
+        }
+
+        public Vector3 GetPhysicalPosition()
         {
             return currentPosition;
         }
@@ -212,6 +230,11 @@ namespace Robot
         {
             currentCommand = null;
 
+            if (sendZeroCommand)
+            {
+                currentCommand = new ZeroCommand();
+                sendZeroCommand = false;
+            }
             if (sendCancelCommand)
             {
                 currentCommand = new CancelCommand();
@@ -265,6 +288,7 @@ namespace Robot
         private IRobotCommand CreateRobotCommand(MoveTool m)
         {
             var p = m.Target;
+            p.Z += z_offset;
 
             float inches_per_minute = m.Speed == MoveTool.SpeedType.Cutting ? MaxCutSpeed : MaxRapidSpeed;
 

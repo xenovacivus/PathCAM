@@ -66,4 +66,10 @@ namespace Robot
         protected override byte CommandCode { get { return 0x88; } }
         public ResetCommand() : base() { }
     }
+
+    internal class ZeroCommand : SingleByteStatusCommand
+    {
+        protected override byte CommandCode { get { return 0x90; } }
+        public ZeroCommand() : base() { }
+    }
 }

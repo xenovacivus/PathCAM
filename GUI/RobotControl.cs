@@ -98,7 +98,9 @@ namespace GUI
             GL.Color3(Color.Silver);
             Polyhedra.DrawCone(position + new Vector3(0, 0, router.ToolDiameter), position, router.ToolDiameter / 2.0f);
 
-
+            Vector3 physicalPosition = robot.GetPhysicalPosition();
+            GL.Color3(Color.Black);
+            Polyhedra.DrawCone(physicalPosition + new Vector3(0, 0, router.ToolDiameter), physicalPosition, router.ToolDiameter / 2.0f);
 
 
             //// Draw the past positions & velocity graph
@@ -219,6 +221,17 @@ namespace GUI
             {
                 comPortForm.Focus();
             }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            robot.Zero();
+        }
+
+        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+        {
+            robot.z_offset = (float)numericUpDown1.Value;
+            this.zGo_Click(null, EventArgs.Empty);
         }
 
         //private List<PreviousPoint> previousPoints = new List<PreviousPoint>();
