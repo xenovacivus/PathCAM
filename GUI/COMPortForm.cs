@@ -39,10 +39,14 @@ namespace GUI
             }
             else
             {
-                if (listBox1.SelectedItem == null)
+                if (comboBox1.SelectedItem == null || comboBox1.SelectedItem == "")
                 {
                     connect.Enabled = false;
                 }
+                //if (listBox1.SelectedItem == null)
+                //{
+                //    connect.Enabled = false;
+                //}
             }
 
             t = new Timer();
@@ -54,41 +58,47 @@ namespace GUI
         void t_Tick(object sender, EventArgs e)
         {
             string [] s = port.PortNames;
-            bool matched = true;
-            if (s.Length != portNames.Length)
+            if (s.Length == portNames.Length)
             {
-                matched = false;
+                // No change in items, do nothing.
+                return;
             }
 
-            if (!matched)
-            {
-                object selectedObject = listBox1.SelectedItem;
+            portNames = s;
 
-                portNames = s;
-                listBox1.Items.Clear();
-                listBox1.Items.AddRange(portNames);
-                
-                if (selectedObject != null)
-                {
-                    string str = selectedObject.ToString();
-                    SelectPortName(str);
-                }
-                if (listBox1.SelectedItem == null && !port.IsOpen)
-                {
-                    connect.Enabled = false;
-                }
-            }
+            string lastSelected = comboBox1.SelectedItem as string;
+
+            comboBox1.Items.Clear();
+            comboBox1.Items.AddRange(portNames);
+
+            SelectPortName(lastSelected);
+
+            comboBox1_SelectedIndexChanged(null, EventArgs.Empty);
         }
 
         private void SelectPortName(string name)
         {
-            for (int i = 0; i < listBox1.Items.Count; i++)
+            if (name == null)
             {
-                if (listBox1.Items[i].ToString() == name)
-                {
-                    listBox1.SelectedIndex = i;
-                }
+                return;
             }
+            var index = comboBox1.Items.IndexOf(name);
+            if (index >= 0)
+            {
+                comboBox1.SelectedIndex = index;
+            }
+            else if (name != null && name != "")
+            {
+                comboBox1.Items.Insert(0, name);
+                comboBox1.SelectedIndex = 0;
+            }
+            //for (int i = 0; i < listBox1.Items.Count; i++)
+            //{
+            //    if (listBox1.Items[i].ToString() == name)
+            //    {
+            //        listBox1.SelectedIndex = i;
+            //    }
+            //}
         }
 
         private void connect_Click(object sender, EventArgs e)
@@ -103,7 +113,7 @@ namespace GUI
                 try
                 {
                     int baudRate = Convert.ToInt32(this.baudBox.Text);
-                    string portName = listBox1.SelectedItem.ToString();
+                    string portName = comboBox1.Text;
                     port.Open(portName, baudRate);
                     connect.Text = "Disconnect";
                 }
@@ -124,9 +134,14 @@ namespace GUI
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
+           
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
             if (!port.IsOpen)
             {
-                if (listBox1.SelectedItem != null)
+                if (comboBox1.SelectedItem != null)
                 {
                     this.connect.Enabled = true;
                 }

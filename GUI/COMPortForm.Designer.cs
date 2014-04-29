@@ -32,13 +32,13 @@
             this.label1 = new System.Windows.Forms.Label();
             this.baudBox = new System.Windows.Forms.TextBox();
             this.connect = new System.Windows.Forms.Button();
-            this.listBox1 = new System.Windows.Forms.ListBox();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(138, 9);
+            this.label2.Location = new System.Drawing.Point(12, 42);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(58, 13);
             this.label2.TabIndex = 12;
@@ -47,7 +47,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 9);
+            this.label1.Location = new System.Drawing.Point(12, 15);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(26, 13);
             this.label1.TabIndex = 11;
@@ -55,37 +55,39 @@
             // 
             // baudBox
             // 
-            this.baudBox.Location = new System.Drawing.Point(138, 25);
+            this.baudBox.Location = new System.Drawing.Point(76, 39);
             this.baudBox.Name = "baudBox";
-            this.baudBox.Size = new System.Drawing.Size(120, 20);
+            this.baudBox.Size = new System.Drawing.Size(89, 20);
             this.baudBox.TabIndex = 10;
             this.baudBox.Text = "9600";
             // 
             // connect
             // 
-            this.connect.Location = new System.Drawing.Point(138, 51);
+            this.connect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.connect.Location = new System.Drawing.Point(12, 65);
             this.connect.Name = "connect";
-            this.connect.Size = new System.Drawing.Size(120, 23);
+            this.connect.Size = new System.Drawing.Size(153, 23);
             this.connect.TabIndex = 8;
             this.connect.Text = "Connect";
             this.connect.UseVisualStyleBackColor = true;
             this.connect.Click += new System.EventHandler(this.connect_Click);
             // 
-            // listBox1
+            // comboBox1
             // 
-            this.listBox1.FormattingEnabled = true;
-            this.listBox1.Location = new System.Drawing.Point(12, 25);
-            this.listBox1.Name = "listBox1";
-            this.listBox1.Size = new System.Drawing.Size(120, 69);
-            this.listBox1.TabIndex = 14;
-            this.listBox1.SelectedIndexChanged += new System.EventHandler(this.listBox1_SelectedIndexChanged);
+            this.comboBox1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Location = new System.Drawing.Point(44, 12);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(121, 21);
+            this.comboBox1.TabIndex = 15;
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
             // 
             // COMPortForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(270, 102);
-            this.Controls.Add(this.listBox1);
+            this.ClientSize = new System.Drawing.Size(178, 98);
+            this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.baudBox);
@@ -103,6 +105,6 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox baudBox;
         private System.Windows.Forms.Button connect;
-        private System.Windows.Forms.ListBox listBox1;
+        private System.Windows.Forms.ComboBox comboBox1;
     }
 }

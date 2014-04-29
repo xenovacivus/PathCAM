@@ -310,7 +310,7 @@ namespace GUI
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(183, 23);
             this.button2.TabIndex = 1;
-            this.button2.Text = "Add Perimeter Paths";
+            this.button2.Text = "Add Cutting Paths";
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.PermiterRoutsClick);
             // 
@@ -353,7 +353,7 @@ namespace GUI
             this.boundaryCheck.Name = "boundaryCheck";
             this.boundaryCheck.Size = new System.Drawing.Size(183, 23);
             this.boundaryCheck.TabIndex = 2;
-            this.boundaryCheck.Text = "Boundary Check Paths";
+            this.boundaryCheck.Text = "Add Boundary Path";
             this.boundaryCheck.UseVisualStyleBackColor = true;
             this.boundaryCheck.Click += new System.EventHandler(this.boundaryCheckButton_Click);
             // 
@@ -411,9 +411,10 @@ namespace GUI
             this.robotControl.BackColor = System.Drawing.Color.Transparent;
             this.robotControl.Location = new System.Drawing.Point(-1, 427);
             this.robotControl.Name = "robotControl";
-            this.robotControl.Size = new System.Drawing.Size(273, 136);
+            this.robotControl.Size = new System.Drawing.Size(169, 136);
             this.robotControl.TabIndex = 8;
             this.robotControl.Visible = false;
+            this.robotControl.Load += new System.EventHandler(this.robotControl_Load);
             // 
             // drawing3D
             // 
@@ -488,6 +489,11 @@ namespace GUI
             this.drawing3D.Size = this.ClientRectangle.Size;
             robotControl.Location = new Point(0, ClientRectangle.Height - robotControl.Height);
             showRobotFormCheckbox.Location = new Point(0, ClientRectangle.Height - showRobotFormCheckbox.Height + 1);
+        }
+
+        private void robotControl_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }

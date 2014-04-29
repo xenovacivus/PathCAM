@@ -27,67 +27,9 @@ namespace Serial
     public class SerialPortWrapper
     {
         public SerialPort port;
-        SerialPacket packet;
 
-        public class SimpleSerialPacket
-        {
-            public SimpleSerialPacket(byte[] data, byte address)
-            {
-                this.data = data;
-                this.address = address;
-            }
-
-            private byte[] data;
-            private byte address;
-
-            public byte[] Data
-            {
-                get
-                {
-                    return data;
-                }
-            }
-
-            public byte Address
-            {
-                get
-                {
-                    return address;
-                }
-            }
-
-            public byte Length
-            {
-                get
-                {
-                    return (byte)data.Length;
-                }
-            }
-        }
-
-        private void RxPacketComplete(SerialPacket s)
-        {
-            //Console.WriteLine("Receive Packet Complete:");
-            for (int i = 0; i < s.receive_length; i++)
-            {
-            }
-
-            SimpleSerialPacket simple = new SimpleSerialPacket(s.receive_data.Take(s.receive_data_count).ToArray(), s.receive_address);
-            if (newDataAvailable != null)
-            {
-                newDataAvailable(simple);
-            }
-        }
-
-        public delegate void newDataAvailableDelegate(SimpleSerialPacket s);
+        public delegate void newDataAvailableDelegate(byte data);
         public newDataAvailableDelegate newDataAvailable;
-
-        public delegate void receiveDataErrorDelegate(byte err);
-        public receiveDataErrorDelegate receiveDataError;
-
-        private void TxPacketComplete()
-        {
-        }
 
         private void TxByte(byte data)
         {
@@ -103,32 +45,10 @@ namespace Serial
                     Console.WriteLine(ex.Message);
                 }
             }
-            packet.SerialByteTransmitComplete();
-        }
-
-        private void RxPacketError(byte err)
-        {
-            //Console.WriteLine("Error! Byte Stream: ");
-            //foreach (byte b in packet.receive_data)
-            //{
-            //    Console.Write(b + ", ");
-            //}
-
-            if (receiveDataError != null)
-            {
-                receiveDataError(err);
-            }
         }
 
         public SerialPortWrapper()
         {
-            // Setup method delegates
-            packet = new SerialPacket();
-            packet.ReceiveDataError = new SerialPacket.ReceiveDataErrorDelegate (RxPacketError);
-            packet.Transmit = new SerialPacket.TransmitDelegate(TxByte);
-            packet.TransmitPacketComplete = new SerialPacket.TransmitPacketeCompleteDelegate(TxPacketComplete);
-            packet.ReceivePacketComplete = new SerialPacket.ReceivePacketCOmpleteDelegate(RxPacketComplete);
-
             // Setup the serial port defaults
             port = new SerialPort();
             port.BaudRate = 9600;
@@ -153,14 +73,9 @@ namespace Serial
             port_DataReceived(null, null);
         }
 
-        public void Transmit(byte[] data, byte address)
+        public void Transmit(byte[] data)
         {
-            // Wait until all pending data is sent
-            while (packet.SerialTransferInProgress())
-            {
-            }
-            data.CopyTo(packet.transmit_data, 0);
-            packet.SerialTransmit(address, (byte)data.Length);
+            port.Write(data, 0, data.Length);
         }
 
         void port_DataReceived(object sender, SerialDataReceivedEventArgs e)
@@ -170,7 +85,11 @@ namespace Serial
                 while (port.IsOpen && port.BytesToRead > 0)
                 {
                     byte data = (byte)port.ReadByte();
-                    packet.ProcessDataChar(data);
+                    
+                    if (newDataAvailable != null)
+                    {
+                        newDataAvailable(data);
+                    }
                 }
             }
             catch (Exception)
@@ -207,6 +126,7 @@ namespace Serial
         {
             get
             {
+                // TODO: customize this list to show all possible devices on Mono
                 return SerialPort.GetPortNames();
             }
         }

@@ -38,6 +38,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.button1 = new System.Windows.Forms.Button();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
+            this.label2 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -47,7 +48,7 @@
             this.steppersEnabledBox.AutoSize = true;
             this.steppersEnabledBox.Enabled = false;
             this.steppersEnabledBox.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.steppersEnabledBox.Location = new System.Drawing.Point(6, 103);
+            this.steppersEnabledBox.Location = new System.Drawing.Point(194, 102);
             this.steppersEnabledBox.Name = "steppersEnabledBox";
             this.steppersEnabledBox.Size = new System.Drawing.Size(107, 17);
             this.steppersEnabledBox.TabIndex = 3;
@@ -135,7 +136,7 @@
             // button1
             // 
             this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button1.Location = new System.Drawing.Point(168, 16);
+            this.button1.Location = new System.Drawing.Point(194, 16);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 81;
@@ -151,9 +152,9 @@
             0,
             0,
             196608});
-            this.numericUpDown1.Location = new System.Drawing.Point(168, 76);
+            this.numericUpDown1.Location = new System.Drawing.Point(65, 102);
             this.numericUpDown1.Maximum = new decimal(new int[] {
-            0,
+            10,
             0,
             0,
             0});
@@ -163,13 +164,23 @@
             0,
             -2147483648});
             this.numericUpDown1.Name = "numericUpDown1";
-            this.numericUpDown1.Size = new System.Drawing.Size(75, 20);
+            this.numericUpDown1.Size = new System.Drawing.Size(97, 20);
             this.numericUpDown1.TabIndex = 82;
             this.numericUpDown1.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(14, 104);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(45, 13);
+            this.label2.TabIndex = 83;
+            this.label2.Text = "Z Offset";
             // 
             // RobotControl
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
+            this.Controls.Add(this.label2);
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.label1);
@@ -181,7 +192,7 @@
             this.Controls.Add(this.cancelButton);
             this.Controls.Add(this.zbox);
             this.Name = "RobotControl";
-            this.Size = new System.Drawing.Size(248, 124);
+            this.Size = new System.Drawing.Size(170, 124);
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -200,6 +211,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.NumericUpDown numericUpDown1;
+        private System.Windows.Forms.Label label2;
 
     }
 }

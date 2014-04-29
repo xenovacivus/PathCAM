@@ -54,7 +54,7 @@ namespace GUI
             }
             else
             {
-                StatusCommand status = o as StatusCommand;
+                IRobotCommandWithStatus status = o as IRobotCommandWithStatus;
                 if (status != null)
                 {
                     this.runButton.Enabled = true;

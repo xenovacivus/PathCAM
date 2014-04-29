@@ -20,13 +20,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using OpenTK;
 
 namespace Robot
 {
     public abstract class IRobotCommand
     {
         internal abstract byte[] GenerateCommand();
-        internal abstract void ProcessResponse(byte[] data);
-        internal abstract bool IsDataValid();
+        internal abstract bool ProcessResponse(byte data);
+        //internal abstract bool IsDataValid();
+    }
+
+    public abstract class IRobotCommandWithStatus : IRobotCommand
+    {
+        // Add in some properties for the current robot status
+        public abstract bool Paused { get; }
+        public abstract bool Pausing { get; }
+        public abstract bool SteppersEnabled { get; }
+        public abstract Vector3 CurrentPosition { get; }
+        public abstract float Time { get; }
+        public abstract bool CanAcceptMoveCommand { get; }
     }
 }

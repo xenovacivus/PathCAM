@@ -98,11 +98,11 @@ namespace GUI
         Vector3 lastPosition;
         void RouterPositionUpdate(object o, EventArgs e)
         {
-            StatusCommand status = o as StatusCommand;
+            IRobotCommandWithStatus status = o as IRobotCommandWithStatus;
             if (status != null)
             {
                 Vector3 position = status.CurrentPosition;
-                float time = status.time;
+                float time = status.Time;
                 float distance = (lastPosition - position).Length;
         
                 if ((lastPosition - position).Length > 0.0001f)
