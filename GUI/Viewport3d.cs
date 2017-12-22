@@ -37,7 +37,7 @@ namespace GUI
         private Matrix4 mouseDownMatrix = Matrix4.Identity;
         private Ray mouseDownRay = new Ray(Vector3.Zero, -Vector3.UnitZ);
         List<Object> objects = new List<Object>();
-        public Matrix4 viewMatrix = Matrix4.CreateTranslation(0, 0, -5);
+        public Matrix4 viewMatrix = Matrix4.CreateTranslation(0, 0, -25);
         private Matrix4 projectionMatrix;
         private Matrix4 inverseProjectionMatrix;
         Vector3 mouseDownCameraPosition = Vector3.Zero;
@@ -57,7 +57,7 @@ namespace GUI
                 r.Height = 1;
             }
             float aspect = r.Width / (float)r.Height;
-            projectionMatrix = OpenTK.Matrix4.CreatePerspectiveFieldOfView(OpenTK.MathHelper.PiOver4, aspect, 0.1f, 100.0f);
+            projectionMatrix = OpenTK.Matrix4.CreatePerspectiveFieldOfView(OpenTK.MathHelper.PiOver4, aspect, 0.1f, 300.0f);
             inverseProjectionMatrix = Matrix4.Invert(projectionMatrix);
         }
 
@@ -106,7 +106,7 @@ namespace GUI
 
         private void ClampMatrix(ref Matrix4 m)
         {
-            float maxDistance = 50.0f;
+            float maxDistance = 150.0f;
             Vector3 direction = m.Row3.Xyz;
             float toZero = direction.Length;
             if (toZero > maxDistance)
@@ -190,21 +190,35 @@ namespace GUI
 
         private void DrawAxis()
         {
-            int min = -10;
-            int max = 10;
+            
+            int min = -45;
+            int max = 45;
 
-            // 1 inch spaced grid lines
+            // 1 inch spaced grid lines with markers every 10 inches
             GL.Disable(EnableCap.Lighting);
             
             GL.Begin(PrimitiveType.Lines);
-            for (float i = min; i <= max; i += 1.0f)
+            for (int i = min; i <= max; i += 1)
             {
-                GL.Color3(Color.LightPink);
-                GL.Vertex3(min, i, 0);
-                GL.Vertex3(max, i, 0);
-                GL.Color3(Color.LightGreen);
-                GL.Vertex3(i, min, 0);
-                GL.Vertex3(i, max, 0);
+                if (i % 10 == 0)
+                {
+                    GL.Color3(Color.LightPink);
+                    GL.Vertex3(min, i, 0);
+                    GL.Vertex3(max, i, 0);
+                    GL.Color3(Color.LightGreen);
+                    GL.Vertex3(i, min, 0);
+                    GL.Vertex3(i, max, 0);
+                }
+                else
+                {
+                    Color c = Color.FromArgb(240, 240, 240);
+                    GL.Color3(c);
+                    GL.Vertex3(min, i, 0);
+                    GL.Vertex3(max, i, 0);
+                    GL.Color3(c);
+                    GL.Vertex3(i, min, 0);
+                    GL.Vertex3(i, max, 0);
+                }
             }
             GL.End();
             
@@ -215,6 +229,19 @@ namespace GUI
             float length = 1.0f;
             float z = -0.001f;
 
+
+            GL.PushMatrix();
+            float scale_factor = CameraPosition.Length * 0.5f;
+            if (scale_factor < 10)
+            {
+                scale_factor = 1;
+            }
+            else
+            {
+                scale_factor = 10;
+            }
+
+            GL.Scale(scale_factor, scale_factor, scale_factor);
             GL.Normal3(Vector3.UnitZ);
             GL.Color3(Color.Red);
             GL.Begin(PrimitiveType.Quads);
@@ -244,6 +271,7 @@ namespace GUI
             GL.Vertex3(-width, length, z);
             GL.Vertex3(0, length + width * Math.Sqrt(3), z);
             GL.End();
+            GL.PopMatrix();
         }
 
         public void Draw()
