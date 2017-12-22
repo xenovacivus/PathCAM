@@ -150,6 +150,11 @@ namespace GUI
                         var item = new MenuItem("Delete", new EventHandler(objectDeleteClicked));
                         item.Tag = clickedObject;
                         menu.MenuItems.Add(item);
+
+                        item = new MenuItem("Set as Bottom Face", new EventHandler(objectSetAsBottomFaceClicked));
+                        item.Tag = clickedObject;
+                        menu.MenuItems.Add(item);
+
                         menu.Show(this, e.Location);
                     }
                 }
@@ -161,6 +166,33 @@ namespace GUI
                 Ray pointer = viewport.GetPointerRay(e.Location);
                 clickedObject.MouseUp(pointer);
                 clickedObject = null;
+            }
+        }
+
+        private void objectSetAsBottomFaceClicked(object sender, EventArgs e)
+        {
+            var item = sender as MenuItem;
+            if (item != null)
+            {
+                IClickable3D toModify = item.Tag as IClickable3D;
+                var triangleMesh = item.Tag as TriangleMeshGUI;
+                if (triangleMesh != null)
+                {
+                    Ray pointer = viewport.GetPointerRay(mouseDownLocation);
+
+                    // If we rotate the object, tabs will become invalid.
+                    foreach (var tab in triangleMesh.Tabs)
+                    {
+                        objects.Remove(tab);
+                    }
+
+                    triangleMesh.SetClickedFaceAsBottom(pointer);
+
+                    foreach (var tab in triangleMesh.Tabs)
+                    {
+                        objects.Add(tab);
+                    }
+                }
             }
         }
 

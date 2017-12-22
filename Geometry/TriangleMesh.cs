@@ -29,15 +29,19 @@ namespace Geometry
     /// Class for building and storing a mesh of triangles.  Each triangle contains pointers to adjacent triangles
     /// through the edges, and edges can also be enumerated.  All operations are safe at any point, and iterating
     /// over edges and triangles is guarenteed accurate and complete if no add or clean operation occurs.
+    /// A transformation can be applied/modified which will apply to all vertices and cached values (min and max point).
+    /// The transformation will always be applied to the original locations of the vertices.
     /// </summary>
     public class TriangleMesh
     {
         private float epsilon = 0.0001f; // Distance between vertices considered to be unique - set to a value valid for inches.
         protected List<Vector3> vertices;
+        private List<Vector3> verticesTransformed; // List of vertices with transformation applied
         private Vector3 minPoint = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
         private Vector3 maxPoint = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
         protected List<TriangleIndices> triangles;
         private List<Edge> segments;
+        private Matrix4 transformation = Matrix4.Identity;
 
         public class TriangleIndices
         {
@@ -81,14 +85,14 @@ namespace Geometry
 
             internal float Length()
             {
-                Vector3 v1 = parentMesh.vertices[a];
-                Vector3 v2 = parentMesh.vertices[b];
+                Vector3 v1 = parentMesh.verticesTransformed[a];
+                Vector3 v2 = parentMesh.verticesTransformed[b];
                 return (v1 - v2).Length;
             }
 
             public LineSegment LineSegment
             {
-                get { return new LineSegment(parentMesh.vertices[a], parentMesh.vertices[b]); }
+                get { return new LineSegment(parentMesh.verticesTransformed[a], parentMesh.verticesTransformed[b]); }
             }
 
             public IEnumerable<Triangle> Triangles
@@ -99,7 +103,7 @@ namespace Geometry
                     while (--num >= 0)
                     {
                         var triangleIndices = triangles[num];
-                        yield return new Triangle(parentMesh.vertices[triangleIndices.a], parentMesh.vertices[triangleIndices.b], parentMesh.vertices[triangleIndices.c]);
+                        yield return new Triangle(parentMesh.verticesTransformed[triangleIndices.a], parentMesh.verticesTransformed[triangleIndices.b], parentMesh.verticesTransformed[triangleIndices.c]);
                     }
                 }
             }
@@ -108,8 +112,8 @@ namespace Geometry
             {
                 get
                 {
-                    yield return parentMesh.vertices[a];
-                    yield return parentMesh.vertices[b];
+                    yield return parentMesh.verticesTransformed[a];
+                    yield return parentMesh.verticesTransformed[b];
                 }
             }
         }
@@ -117,6 +121,7 @@ namespace Geometry
         public TriangleMesh()
         {
             vertices = new List<Vector3>();
+            verticesTransformed = new List<Vector3>();
             triangles = new List<TriangleIndices>();
             segments = new List<Edge>();
         }
@@ -187,6 +192,32 @@ namespace Geometry
         {
             get { return epsilon; }
             set { epsilon = value; }
+        }
+
+        public Matrix4 Transformation
+        {
+            get { return transformation; }
+            set
+            {
+                transformation = value;
+                // Update all the transformed vertices and min/max values.
+                minPoint = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+                maxPoint = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+                var vertexCount = vertices.Count;
+                while (--vertexCount >= 0)
+                {
+                    var vertex = Vector3.Transform(vertices[vertexCount], transformation);
+                    verticesTransformed[vertexCount] = vertex;
+
+                    minPoint.X = Math.Min(vertex.X, minPoint.X);
+                    minPoint.Y = Math.Min(vertex.Y, minPoint.Y);
+                    minPoint.Z = Math.Min(vertex.Z, minPoint.Z);
+
+                    maxPoint.X = Math.Max(vertex.X, maxPoint.X);
+                    maxPoint.Y = Math.Max(vertex.Y, maxPoint.Y);
+                    maxPoint.Z = Math.Max(vertex.Z, maxPoint.Z);
+                }
+            }
         }
 
         /// <summary>
@@ -273,7 +304,10 @@ namespace Geometry
                 while (--num >= 0)
                 {
                     var triangleIndices = triangles[num];
-                    yield return new Triangle(vertices[triangleIndices.a], vertices[triangleIndices.b], vertices[triangleIndices.c]);
+                    yield return new Triangle(
+                        verticesTransformed[triangleIndices.a],
+                        verticesTransformed[triangleIndices.b],
+                        verticesTransformed[triangleIndices.c]);
                 }
             }
         }
@@ -295,14 +329,16 @@ namespace Geometry
             {
                 index = vertices.Count;
                 vertices.Add(vertex);
+                var transformed = Vector3.Transform(vertex, transformation);
+                verticesTransformed.Add(transformed);
 
-                minPoint.X = Math.Min(minPoint.X, vertex.X);
-                minPoint.Y = Math.Min(minPoint.Y, vertex.Y);
-                minPoint.Z = Math.Min(minPoint.Z, vertex.Z);
+                minPoint.X = Math.Min(minPoint.X, transformed.X);
+                minPoint.Y = Math.Min(minPoint.Y, transformed.Y);
+                minPoint.Z = Math.Min(minPoint.Z, transformed.Z);
 
-                maxPoint.X = Math.Max(maxPoint.X, vertex.X);
-                maxPoint.Y = Math.Max(maxPoint.Y, vertex.Y);
-                maxPoint.Z = Math.Max(maxPoint.Z, vertex.Z);
+                maxPoint.X = Math.Max(maxPoint.X, transformed.X);
+                maxPoint.Y = Math.Max(maxPoint.Y, transformed.Y);
+                maxPoint.Z = Math.Max(maxPoint.Z, transformed.Z);
             }
             return index;
         }

@@ -34,6 +34,13 @@ namespace GUI
         private Vector3 mouseHoverPoint = Vector3.Zero;
         private List<TabsGUI> tabs = new List<TabsGUI>();
         private Vector3 offset = Vector3.Zero;
+
+        // Variables for animated rotation/translation
+        bool isTransforming = false;
+        double secondsToTransform = 1.0f;
+        DateTime transformBeginTime = DateTime.MinValue;
+        Matrix4 targetTransform;
+        Matrix4 fromTransform;
         
         public TriangleMeshGUI() : base()
         {
@@ -62,8 +69,10 @@ namespace GUI
             }
         }
 
+        private float lastToolRadius = 0.1f;
         public void GenerateTabPaths(float toolRadius)
         {
+            lastToolRadius = toolRadius;
             tabs.Clear();
             try
             {
@@ -77,8 +86,9 @@ namespace GUI
                     tabs.Add(new TabsGUI(line, toolRadius, true));
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine("Error generating tab paths: " + ex.Message);
             }
             this.Offset = offset; // Force the offset update in the tabs
         }
@@ -99,6 +109,33 @@ namespace GUI
         {
             GL.PushMatrix();
             GL.Translate(offset);
+
+            if (isTransforming)
+            {
+                double deltaTime = (DateTime.Now - transformBeginTime).TotalSeconds;
+                if (deltaTime > secondsToTransform)
+                {
+                    isTransforming = false;
+                    this.Transformation = targetTransform;
+                    this.RefreshDisplayLists();
+                }
+                else
+                {
+                    float linear = (float)(deltaTime / secondsToTransform);
+                    float interp = linear < 0.5f ? 2 * linear * linear : linear * (4 - 2 * linear) - 1.0f;
+                    Quaternion source = fromTransform.ExtractRotation();
+                    Quaternion target = targetTransform.ExtractRotation();
+                    Quaternion slerp = Quaternion.Slerp(source, target, (float)interp);
+
+                    Vector3 translatePart = fromTransform.ExtractTranslation() * (1-interp) + targetTransform.ExtractTranslation() * interp;
+
+                    Matrix4 x = Matrix4.CreateFromQuaternion(slerp) * Matrix4.CreateTranslation(translatePart);
+                    
+                    //Matrix4 x = targetTransform * (float)interp + fromTransform * (float)(1 - interp);
+                    
+                    GL.MultMatrix(ref x);
+                }
+            }
 
             Color triangleColor = Color.Green;
             Color lineColor = Color.Green;
@@ -274,6 +311,19 @@ namespace GUI
                 GL.Enable(EnableCap.Lighting);
             }
 
+            //// Highlight the closest triangle - debugging
+            //if (hoveredTriangle != null)
+            //{
+            //    GL.LineWidth(2);
+            //    GL.Color3(0, 0, 0);
+            //    GL.Begin(PrimitiveType.LineLoop);
+            //    GL.Vertex3(hoveredTriangle.A);
+            //    GL.Vertex3(hoveredTriangle.B);
+            //    GL.Vertex3(hoveredTriangle.C);
+            //    GL.End();
+            //    GL.LineWidth(1);
+            //}
+
 
             // Mesh analysis testing...
             //GL.PushMatrix();
@@ -359,7 +409,7 @@ namespace GUI
         {
             mouseDownPoint = mouseHoverPoint;
             mouseDownOffset = offset;
-            Console.WriteLine("Mouse Down TriMeshGUI");
+            //Console.WriteLine("Mouse Down TriMeshGUI");
         }
 
         void IClickable3D.MouseUp(Ray pointer)
@@ -368,26 +418,32 @@ namespace GUI
 
         private bool hovered = false;
         //Edge closestEdge = null;
+        Triangle hoveredTriangle = null;
 
         float IClickable3D.DistanceToObject(Ray pointer)
         {
             Ray adjustedPointer = new Ray(pointer.Start - offset, pointer.Direction);
             hovered = false;
             float distance = float.PositiveInfinity;
-            foreach (Triangle t in base.Triangles)
+            hoveredTriangle = null;
+
+            if (!isTransforming)
             {
-                TriangleRayIntersect i = new TriangleRayIntersect(t, adjustedPointer);
-                if (i.Intersects)
+                foreach (Triangle t in base.Triangles)
                 {
-                    float d = (adjustedPointer.Start - i.Point).Length;
-                    if (d < distance)
+                    TriangleRayIntersect i = new TriangleRayIntersect(t, adjustedPointer);
+                    if (i.Intersects)
                     {
-                        distance = d;
-                        mouseHoverPoint = i.Point;
+                        float d = (adjustedPointer.Start - i.Point).Length;
+                        if (d < distance)
+                        {
+                            distance = d;
+                            mouseHoverPoint = i.Point;
+                            hoveredTriangle = t;
+                        }
                     }
                 }
             }
-
 
             // Remember the closest edge - debugging
             //float x = 0;
@@ -420,6 +476,65 @@ namespace GUI
             Plane plane = new Plane(Vector3.UnitZ, mouseDownPoint);
             Vector3 point = plane.Distance(adjustedPointer) * adjustedPointer.Direction + adjustedPointer.Start;
             Offset = mouseDownOffset + point - mouseDownPoint;
+        }
+
+        internal void SetClickedFaceAsBottom(Ray pointer)
+        {
+            Ray adjustedPointer = new Ray(pointer.Start - offset, pointer.Direction);
+            hovered = false;
+            float distance = float.PositiveInfinity;
+            Vector3 clickedPoint = Vector3.Zero;
+            Plane clickedPlane = null;
+
+            var triangleIndex = 0;
+            var count = 0;
+            foreach (Triangle t in base.Triangles)
+            {
+                TriangleRayIntersect i = new TriangleRayIntersect(t, adjustedPointer);
+                if (i.Intersects)
+                {
+                    float d = (adjustedPointer.Start - i.Point).Length;
+                    if (d < distance)
+                    {
+                        distance = d;
+                        clickedPoint = i.Point;
+                        clickedPlane = t.Plane;
+                        triangleIndex = count;
+                    }
+                }
+                count++;
+            }
+
+            if (clickedPlane != null)
+            {
+                fromTransform = Transformation;
+                this.Transformation = Matrix4.Identity;
+                Vector3 originalCenter = (this.MinPoint + this.MaxPoint) * 0.5f;
+
+                clickedPlane = Triangles.ElementAt(triangleIndex).Plane;
+                var up = Vector3.UnitZ;
+                if (Math.Abs(clickedPlane.Normal.Z) > 0.95)
+                {
+                    up = Vector3.UnitX;
+                }
+                Matrix4 rotate = Matrix4.LookAt(Vector3.Zero, clickedPlane.Normal, up);
+                rotate = rotate.ClearTranslation();
+
+                // We want the original clicked point to be at the same X and Y, and at Z = 0
+                Vector3 fix = Vector3.Transform(clickedPlane.Point, rotate);
+                Vector3 newCenter = Vector3.Transform(originalCenter, rotate);
+                Console.WriteLine("Original Center: " + originalCenter);
+                rotate = Matrix4.Mult(rotate, Matrix4.CreateTranslation(originalCenter.X - newCenter.X, originalCenter.Y - newCenter.Y, -fix.Z));
+
+                transformBeginTime = DateTime.Now;
+                targetTransform = rotate;
+                this.isTransforming = true;
+
+                this.Transformation = targetTransform;
+                this.GenerateTabPaths(lastToolRadius);
+                this.Transformation = Matrix4.Identity;
+                this.RefreshDisplayLists();
+            }
         }
     }
 }
