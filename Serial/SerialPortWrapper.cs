@@ -30,6 +30,7 @@ namespace Serial
 
         public delegate void newDataAvailableDelegate(byte data);
         public newDataAvailableDelegate newDataAvailable;
+        System.Timers.Timer t;
 
         private void TxByte(byte data)
         {
@@ -51,7 +52,7 @@ namespace Serial
         {
             // Setup the serial port defaults
             port = new SerialPort();
-            port.BaudRate = 9600;
+            port.BaudRate = 115200;
             port.DataBits = 8;
             port.Parity = Parity.None;
             port.Handshake = Handshake.None;
@@ -63,7 +64,7 @@ namespace Serial
 
             // Earlier versions of Mono don't fire this event, so poll instead.
             //port.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
-            System.Timers.Timer t = new System.Timers.Timer(10);
+            t = new System.Timers.Timer(10);
             t.Elapsed += t_Elapsed;
             t.Start();
         }
@@ -76,15 +77,18 @@ namespace Serial
         public void Transmit(byte[] data)
         {
             port.Write(data, 0, data.Length);
+            //Console.WriteLine("Tx'd Bytes = " + BitConverter.ToString(data));
         }
 
         void port_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
+            t.Stop(); // Otherwise we get multiple calls to this function by the elapsed timer.
             try
             {
                 while (port.IsOpen && port.BytesToRead > 0)
                 {
                     byte data = (byte)port.ReadByte();
+                    //Console.WriteLine("Rx'd byte = " + BitConverter.ToString(new byte[] { data }));
                     
                     if (newDataAvailable != null)
                     {
@@ -92,9 +96,11 @@ namespace Serial
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
             }
+            t.Start();
         }
 
         public void Open(string portName, int baudRate)

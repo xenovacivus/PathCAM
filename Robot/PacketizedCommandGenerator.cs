@@ -252,6 +252,7 @@ namespace Robot
             bool paused = false;
             bool pausing = false;
             bool steppers_enabled = false;
+            public override bool Homed { get { return true; } }
             public override bool Paused { get { return paused; } }
             public override bool Pausing { get { return pausing; } }
             public override bool SteppersEnabled { get { return steppers_enabled; } }
@@ -379,6 +380,11 @@ namespace Robot
 
         #region ICommandGenerator Implementation
 
+        public override IRobotCommand GetNextSetupCommand()
+        {
+            return null;
+        }
+
         public override IRobotCommand GenerateMoveCommand(Vector3 location, float inches_per_second)
         {
             return new MoveCommand(location, inches_per_second);
@@ -426,5 +432,18 @@ namespace Robot
 
         #endregion
 
+
+        public override IRobotCommand GenerateSpindleEnableCommand(float spindleRPM)
+        {
+            Console.WriteLine("Robot does not support spindle enable command");
+            return new StatusCommand();
+            //throw new NotImplementedException();
+        }
+
+        public override IRobotCommand GenerateSpindleDisableCommand()
+        {
+            return new StatusCommand();
+            //throw new NotImplementedException();
+        }
     }
 }

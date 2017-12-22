@@ -116,7 +116,10 @@ namespace Robot
                 }
                 return false;
             }
-
+            public override bool Homed
+            {
+                get { return true; } // TODO: implement properly
+            }
             public override bool Paused
             {
                 get { return paused; }
@@ -209,6 +212,11 @@ namespace Robot
             }
         }
 
+        public override IRobotCommand GetNextSetupCommand()
+        {
+            return null;
+        }
+
         public override IRobotCommand GenerateMoveCommand(OpenTK.Vector3 location, float inches_per_second)
         {
             return new GrblMoveCommand(this, location, inches_per_second);
@@ -252,6 +260,19 @@ namespace Robot
         }
 
         public override IRobotCommand GenerateStepperDisableCommand()
+        {
+            //throw new NotImplementedException();
+            return new GrblStatusCommand(this);
+        }
+
+        public override IRobotCommand GenerateSpindleEnableCommand(float spindleRPM)
+        {
+            //throw new NotImplementedException();
+            Console.WriteLine("GRBL Spindle Enable Command Not Implemented!");
+            return new GrblStatusCommand(this);
+        }
+
+        public override IRobotCommand GenerateSpindleDisableCommand()
         {
             //throw new NotImplementedException();
             return new GrblStatusCommand(this);

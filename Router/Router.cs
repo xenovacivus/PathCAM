@@ -96,7 +96,7 @@ namespace Router
             set { max_cut_depth = value; }
         }
 
-        public void RoutPath(LineStrip line, bool backwards, Vector3 offset)
+        public void RoutPath(LineStrip line, bool backwards, Vector3 offset, bool cutting = true)
         {
             bool first = true;
             
@@ -104,8 +104,9 @@ namespace Router
             {
                 // TODO: Pick some unit and stick with it!  Inches would be fine.
                 Vector3 pointOffset = point + offset;
-                
-                MoveTool m = new MoveTool(pointOffset, MoveTool.SpeedType.Cutting);
+
+                MoveTool.SpeedType speed = cutting ? MoveTool.SpeedType.Cutting : MoveTool.SpeedType.Rapid;
+                MoveTool m = new MoveTool(pointOffset, speed);
                 if (first)
                 {
                     first = false;

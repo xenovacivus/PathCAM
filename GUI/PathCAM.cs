@@ -234,7 +234,7 @@ namespace GUI
             r.Append(new Vector3(xMax, yMax, router.MoveHeight));
             r.Append(new Vector3(xMin, yMax, router.MoveHeight));
             r.Append(new Vector3(xMin, yMin, router.MoveHeight));
-            router.RoutPath(r, false, Vector3.Zero);
+            router.RoutPath(r, false, Vector3.Zero, cutting:false);
             router.Complete();
         }
 

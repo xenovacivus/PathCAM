@@ -39,7 +39,7 @@ namespace GUI
             }
             else
             {
-                if (comboBox1.SelectedItem == null || comboBox1.SelectedItem == "")
+                if (comboBox1.SelectedItem == null || comboBox1.SelectedItem.ToString() == "")
                 {
                     connect.Enabled = false;
                 }

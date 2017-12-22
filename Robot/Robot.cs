@@ -35,7 +35,7 @@ namespace Robot
         private IRobotCommand currentCommand = null;
         private SerialPortWrapper serial;
         private Timer t;
-        private int elapsedCounter = 0;
+        private int timeoutCountdown = 0;
         private Vector3 currentPosition = new Vector3(0, 0, 0);
         private Vector3 lastPosition = new Vector3(0, 0, 0);
         private bool lastPositionKnown = false;
@@ -45,6 +45,7 @@ namespace Robot
         private float maxCutSpeed = 100.0f;
         private float maxRapidSpeed = 250.0f;
 
+        bool isSpindleSpinning = false;
         bool sendResumeCommand = false;
         bool sendPauseCommand = false;
         bool sendCancelCommand = false;
@@ -183,7 +184,7 @@ namespace Robot
                     // Look for an ASCII communicating robot (like GRBL)
                     var s = System.Text.Encoding.ASCII.GetString(accumulator.ToArray());
 
-                    if (s.EndsWith("\r\n", StringComparison.OrdinalIgnoreCase))
+                    if (s.EndsWith("\n", StringComparison.OrdinalIgnoreCase))
                     {
                         if (s.StartsWith("Grbl ") && s.Length >= 9)
                         {
@@ -221,41 +222,48 @@ namespace Robot
             }
         }
 
-        const int timeout_ms = 1000;
+        const int timeout_ms = 1000; // Set to a general command response timeout value
+        const int robot_detection_timeout = 5000; // Set to the worst case robot timeout
 
+        // Set to elapse every 50 milliseconds
         void t_Elapsed(object sender, ElapsedEventArgs e)
         {
             t.Stop();
             lock (thisLock)
             {
-                if (elapsedCounter > timeout_ms)
+                // Do we have a connection to the robot open?
+                if (serial == null || !serial.IsOpen)
                 {
-                    if (currentCommand != null && currentCommand is RobotDetectionCommand)
-                    {
-                        Console.WriteLine("Unexpected Response from robot detection: " + (currentCommand as RobotDetectionCommand).DumpData());
-                    }
-                    // Expected reply not received within 1 second, assume command was lost.
-                    Console.WriteLine("Device Timeout!");
-                }
-
-                if (serial == null || !serial.IsOpen || elapsedCounter > timeout_ms)
-                {
+                    // No connection, do nothing, indicate that we know nothing about the robot.
                     lastPositionKnown = false;
                     commandGenerator = null;
                     currentCommand = null;
-                    elapsedCounter = 0;
                 }
                 else
                 {
+                    // We have a serial port open
                     if (currentCommand == null)
                     {
+                        // Must have just connected to a robot - send out a command to figure out what type of robot we have.
                         currentCommand = new RobotDetectionCommand();
                         serial.Transmit(currentCommand.GenerateCommand());
-                        elapsedCounter = 0;
+                        timeoutCountdown = robot_detection_timeout;
+                    }
+                    else if (timeoutCountdown < 0)
+                    {
+                        // Expected reply not received within timeout, assume command was lost.
+                        Console.WriteLine("Device Timeout!");
+
+                        if (currentCommand != null && currentCommand is RobotDetectionCommand)
+                        {
+                            // We tried to connect to a robot, but didn't get the expected response.
+                            Console.WriteLine("Unexpected Response from robot detection: " + (currentCommand as RobotDetectionCommand).DumpData());
+                        }
+                        currentCommand = null;
                     }
                     else
                     {
-                        elapsedCounter += 50;
+                        timeoutCountdown -= 50; // ticks every 50 milliseconds
                     }
                 }
             }
@@ -270,9 +278,10 @@ namespace Robot
         Object thisLock = new Object();
         private void NewDataAvailable(byte data)
         {
+            t.Stop(); // debugging
             lock (thisLock)
             {
-                elapsedCounter = 0;
+                timeoutCountdown = timeout_ms;
                 if (currentCommand == null)
                 {
                     Console.WriteLine("Error: Received data, but no command was sent!");
@@ -310,6 +319,7 @@ namespace Robot
                     }
                 }
             }
+            t.Start(); // debugging
         }
 
         private IRobotCommand GetNextCommand(bool canAcceptMoveCommand)
@@ -318,6 +328,14 @@ namespace Robot
             if (commandGenerator == null)
             {
                 return null;
+            }
+            
+            
+            // If the command generator has setup commands, send them out first.
+            currentCommand = commandGenerator.GetNextSetupCommand();
+            if (currentCommand != null)
+            {
+                return currentCommand;
             }
 
             if (sendZeroCommand)
@@ -352,12 +370,31 @@ namespace Robot
             }
             else if (canAcceptMoveCommand && lastPositionKnown)
             {
-                while (currentCommand == null && commands.Count > 0)
+                lock (commands)
                 {
-                    ICommand command = commands.Dequeue();
-                    if (command is MoveTool)
+                    while (currentCommand == null && commands.Count > 0)
                     {
-                        currentCommand = CreateRobotCommand(command as MoveTool, commandGenerator);
+                        ICommand command = commands.Peek();
+                        if (command is MoveTool)
+                        {
+                            var moveTool = command as MoveTool;
+                            // If this is a cutting command and the spindle isn't going, spin it up.
+                            if (moveTool.Speed == MoveTool.SpeedType.Cutting && !isSpindleSpinning)
+                            {
+                                currentCommand = commandGenerator.GenerateSpindleEnableCommand(5000.0f);
+                                isSpindleSpinning = true;
+                            }
+                            else
+                            {
+                                currentCommand = CreateRobotCommand(moveTool, commandGenerator);
+                                commands.Dequeue();
+                            }
+                        }
+                    }
+                    if (commands.Count == 0 && currentCommand == null && isSpindleSpinning)
+                    {
+                        currentCommand = commandGenerator.GenerateSpindleDisableCommand();
+                        isSpindleSpinning = false;
                     }
                 }
             }
@@ -365,7 +402,8 @@ namespace Robot
             {
                 currentCommand = commandGenerator.GenerateStatusCommand();
             }
-            
+
+
             return currentCommand;
         }
         

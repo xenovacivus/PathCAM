@@ -34,6 +34,7 @@ namespace Robot
     public abstract class IRobotCommandWithStatus : IRobotCommand
     {
         // Add in some properties for the current robot status
+        public abstract bool Homed { get; }
         public abstract bool Paused { get; }
         public abstract bool Pausing { get; }
         public abstract bool SteppersEnabled { get; }

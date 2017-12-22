@@ -8,6 +8,7 @@ namespace Robot
 {
     abstract class ICommandGenerator
     {
+        public abstract IRobotCommand GetNextSetupCommand();
         public abstract IRobotCommand GenerateMoveCommand(Vector3 location, float inches_per_second);
         public abstract IRobotCommand GenerateStatusCommand();
         public abstract IRobotCommand GenerateResetCommand();
@@ -17,5 +18,7 @@ namespace Robot
         public abstract IRobotCommand GenerateCancelCommand();
         public abstract IRobotCommand GenerateStepperEnableCommand();
         public abstract IRobotCommand GenerateStepperDisableCommand();
+        public abstract IRobotCommand GenerateSpindleEnableCommand(float spindleRPM);
+        public abstract IRobotCommand GenerateSpindleDisableCommand();
     }
 }
