@@ -12,7 +12,7 @@ Getting Started
 ---------------
 
 * Ubuntu
- * Build & Run with these commands:
+  * Build & Run with these commands:
         
         ```
         sudo apt-get install mono-devel mono-gmcs
@@ -23,8 +23,8 @@ Getting Started
         ```
 
 * Windows
- * Download the [PathCAM MSI package](https://github.com/xenovacivus/PathCAM/blob/master/Installer/PathCAM.msi?raw=true)
- * Alternatively, you can build the sources with Mono or Visual Studio 2012.
+  * Download the [PathCAM MSI package](https://github.com/xenovacivus/PathCAM/blob/master/Installer/PathCAM.msi?raw=true)
+  * Alternatively, you can build the sources with Mono or Visual Studio 2012.
 
 
 Usage
