@@ -45,6 +45,7 @@ namespace GUI
             
             settings = new Settings(robotControl.GetRobot(), router);
             propertyGrid.SelectedObject = settings;
+            comboBox1.SelectedIndex = 0;
         }
  
         void Drawing3D_DragLeave(object sender, EventArgs e)
@@ -263,28 +264,28 @@ namespace GUI
         }
 
         private float loadObjectScale = 1.0f;
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            float targetScale = 0.0f;
-            float sourceScale = 0.0f;
-
-            var match = new Regex(@"^(?<source>\S+):(?<target>\S+)").Match(comboBox1.Text);
-
-            if (match.Success
-                && float.TryParse(match.Groups["source"].Value, out sourceScale)
-                && float.TryParse(match.Groups["target"].Value, out targetScale)
-                && targetScale != 0 && sourceScale != 0)
-            {
-                comboBox1.BackColor = SystemColors.Window;
-                openFileButton.Enabled = true;
-                loadObjectScale = targetScale / sourceScale;
-            }
-            else
-            {
-                comboBox1.BackColor = Color.LightPink;
-                openFileButton.Enabled = false;
-            }
-        }
+        //private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        //{
+        //    float targetScale = 0.0f;
+        //    float sourceScale = 0.0f;
+        //
+        //    var match = new Regex(@"^(?<source>\S+):(?<target>\S+)").Match(comboBox1.Text);
+        //
+        //    if (match.Success
+        //        && float.TryParse(match.Groups["source"].Value, out sourceScale)
+        //        && float.TryParse(match.Groups["target"].Value, out targetScale)
+        //        && targetScale != 0 && sourceScale != 0)
+        //    {
+        //        comboBox1.BackColor = SystemColors.Window;
+        //        openFileButton.Enabled = true;
+        //        loadObjectScale = targetScale / sourceScale;
+        //    }
+        //    else
+        //    {
+        //        comboBox1.BackColor = Color.LightPink;
+        //        openFileButton.Enabled = false;
+        //    }
+        //}
 
         private void InitializeComponent()
         {
@@ -323,6 +324,7 @@ namespace GUI
             this.propertyGrid.Size = new System.Drawing.Size(183, 205);
             this.propertyGrid.TabIndex = 5;
             this.propertyGrid.ToolbarVisible = false;
+            this.propertyGrid.Click += new System.EventHandler(this.propertyGrid_Click);
             // 
             // saveGcodeButton
             // 
@@ -360,19 +362,17 @@ namespace GUI
             // comboBox1
             // 
             this.comboBox1.BackColor = System.Drawing.SystemColors.Window;
+            this.comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBox1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.comboBox1.FormattingEnabled = true;
             this.comboBox1.Items.AddRange(new object[] {
-            "1:1 (inches)",
-            "25.4:1 (millimeters)",
-            ".254:1 (meters)",
-            "1:12 (feet)"});
+            "inches",
+            "millimeters"});
             this.comboBox1.Location = new System.Drawing.Point(87, 129);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(107, 21);
             this.comboBox1.TabIndex = 7;
-            this.comboBox1.Text = "1:1 (inches)";
-            this.comboBox1.TextChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged_1);
             // 
             // openFileButton
             // 
@@ -494,6 +494,26 @@ namespace GUI
         private void robotControl_Load(object sender, EventArgs e)
         {
 
+        }
+
+        private void propertyGrid_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox1_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+            if (comboBox1.SelectedItem.ToString().ToLower().Contains("inches"))
+            {
+                settings.ChangeUnitType(Settings.MeasurementUnitTypes.Inches);
+                loadObjectScale = 1.0f;
+            }
+            if (comboBox1.SelectedItem.ToString().ToLower().Contains("millimeters"))
+            {
+                settings.ChangeUnitType(Settings.MeasurementUnitTypes.Millimeters);
+                loadObjectScale = 1.0f / 25.4f;
+            }
+            propertyGrid.Refresh();
         }
     }
 }
