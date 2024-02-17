@@ -24,6 +24,7 @@ Getting Started
 
 * Windows
   * Download the [PathCAM MSI package (beta with Gerber support!)](https://github.com/xenovacivus/PathCAM/blob/pathcam-gerber/Installer/PathCAM.msi?raw=true)
+  * Download [PathCAM Binaries .zip](https://github.com/xenovacivus/PathCAM/raw/pathcam-gerber/Installer/PathCAM.zip).  Just extract all the binaries in the same folder and run "PathCAM.exe".
   * Alternatively, you can build the sources with Mono or Visual Studio.
 
 
