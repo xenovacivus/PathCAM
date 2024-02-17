@@ -57,7 +57,7 @@ namespace GUI
                 r.Height = 1;
             }
             float aspect = r.Width / (float)r.Height;
-            projectionMatrix = OpenTK.Matrix4.CreatePerspectiveFieldOfView(OpenTK.MathHelper.PiOver4, aspect, 0.1f, 100.0f);
+            projectionMatrix = OpenTK.Matrix4.CreatePerspectiveFieldOfView(OpenTK.MathHelper.PiOver4, aspect, 0.01f, 500.0f);
             inverseProjectionMatrix = Matrix4.Invert(projectionMatrix);
         }
 
@@ -106,7 +106,7 @@ namespace GUI
 
         private void ClampMatrix(ref Matrix4 m)
         {
-            float maxDistance = 50.0f;
+            float maxDistance = 450.0f;
             Vector3 direction = m.Row3.Xyz;
             float toZero = direction.Length;
             if (toZero > maxDistance)

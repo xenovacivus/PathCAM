@@ -46,7 +46,10 @@
   <ItemGroup>
     <Compile Include="DataConverter.cs" />
     <Compile Include="GrblCommandGenerator.cs" />
+    <Compile Include="RepetierMachine.cs" />
+    <Compile Include="GrblMachine.cs" />
     <Compile Include="ICommandGenerator.cs" />
+    <Compile Include="IMachine.cs" />
     <Compile Include="IRobotCommand.cs" />
     <Compile Include="PacketizedCommandGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

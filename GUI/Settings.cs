@@ -17,50 +17,122 @@ namespace GUI
         private Robot.Robot robot;
         private Router.Router router;
 
+        public class UnitConverter
+        {
+            public Settings.MeasurementUnitTypes currentSelectedUnits;
+            public UnitConverter(MeasurementUnitTypes defaultUnits)
+            {
+                currentSelectedUnits = defaultUnits;
+            }
+
+            public void UpdateUnits(MeasurementUnitTypes newUnits)
+            {
+                if (newUnits != currentSelectedUnits)
+                {
+                    currentSelectedUnits = newUnits;
+                    onUnitsChange(this, null);
+                }
+            }
+
+            public EventHandler onUnitsChange;
+
+
+
+            private float FromPathCAMToUISpeedUnitScale
+            {
+                get
+                {
+                    switch (currentSelectedUnits)
+                    {
+                        case MeasurementUnitTypes.Inches:
+                            return 1.0f;
+                        case MeasurementUnitTypes.Millimeters:
+                            // Convert from inches per minute to millimeters per second
+                            return 25.4f / 60.0f;
+                        default:
+                            return float.NaN;
+                    }
+                }
+            }
+
+            public float SpeedToUIUnits(float speedInPathCAMUnits)
+            {
+                return speedInPathCAMUnits * FromPathCAMToUISpeedUnitScale;
+            }
+
+            public float SpeedFromUIUnits(float speedInUIUnits)
+            {
+                return speedInUIUnits / FromPathCAMToUISpeedUnitScale;
+            }
+
+
+            internal float ToUIUnits(float valueInPathCAMUnits)
+            {
+                switch (currentSelectedUnits)
+                {
+                    case MeasurementUnitTypes.Inches:
+                        return valueInPathCAMUnits;
+                    case MeasurementUnitTypes.Millimeters:
+                        return valueInPathCAMUnits * 25.4f;
+                    default:
+                        return float.NaN; // Should never get here.
+                }
+            }
+
+            internal float FromUIUnits(float valueInUIUnits)
+            {
+                switch (currentSelectedUnits)
+                {
+                    case MeasurementUnitTypes.Inches:
+                        return valueInUIUnits;
+                    case MeasurementUnitTypes.Millimeters:
+                        return valueInUIUnits / 25.4f;
+                    default:
+                        return float.NaN; // Should never get here.
+                }
+            }
+        }
+
         // Internally all units are in inches.
         public enum MeasurementUnitTypes
         {
             Millimeters,
             Inches,
         };
-        MeasurementUnitTypes units;
+
+        public MeasurementUnitTypes GetUnitType()
+        {
+            return unitConverter.currentSelectedUnits;
+        }
+
+        public UnitConverter GetUnitConverter()
+        {
+            return unitConverter;
+        }
 
         public void ChangeUnitType(MeasurementUnitTypes newType)
         {
-            units = newType;
+            unitConverter.UpdateUnits(newType);
         }
 
         private float ToDisplayUnits(float inches)
         {
-            switch (units)
-            {
-                case MeasurementUnitTypes.Inches:
-                    return inches;
-                case MeasurementUnitTypes.Millimeters:
-                    return inches * 25.4f;
-                default:
-                    return float.NaN; // Should never get here.
-            }
+            return unitConverter.ToUIUnits(inches);
+            
         }
 
-        private float FromDisplayUnits(float value)
+        private float FromDisplayUnits(float uiUnits)
         {
-            switch(units)
-            {
-                case MeasurementUnitTypes.Inches:
-                    return value;
-                case MeasurementUnitTypes.Millimeters:
-                    return value / 25.4f;
-                default:
-                    return float.NaN; // Should never get here.
-            }
+            return unitConverter.FromUIUnits(uiUnits);
         }
 
+
+        UnitConverter unitConverter;
         public Settings(Robot.Robot robot, Router.Router router)
         {
+            this.unitConverter = new UnitConverter(MeasurementUnitTypes.Millimeters);
             this.router = router;
             this.robot = robot;
-            this.units = Settings.MeasurementUnitTypes.Millimeters;
         }
 
         ///
@@ -85,20 +157,21 @@ namespace GUI
         //}
 
         // https://learn.microsoft.com/en-us/answers/questions/1183869/when-displaying-float-or-double-values-in-property
-        public class FourDecimalPlaceConverter : SingleConverter
+        public class ThreeDecimalPlaceConverter : SingleConverter
         {
             public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
             {
                 if (destinationType == typeof(string) && value is float)
                 {
                     //return ((float)value).ToString("N3");
-                    return String.Format("{0:0.####}", (float)value);
+                    return String.Format("{0:0.###}", (float)value);
                 }
                 return base.ConvertTo(context, culture, value, destinationType);
             }
         }
 
-        [TypeConverter(typeof(FourDecimalPlaceConverter))]
+        [Category("Path Planning")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
         [DisplayName("Tab Height")]
         [Description("Height of the tabs")]
         public float TabHeight
@@ -107,7 +180,8 @@ namespace GUI
             set { router.TabHeight = FromDisplayUnits(value); }
         }
 
-        [TypeConverter(typeof(FourDecimalPlaceConverter))]
+        [Category("Path Planning")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
         [DisplayName("Last Pass Height")]
         [Description("Height of the last pass")]
         public float LastPassHeight
@@ -116,7 +190,8 @@ namespace GUI
             set { router.LastPassHeight = FromDisplayUnits(value); }
         }
 
-        [TypeConverter(typeof(FourDecimalPlaceConverter))]
+        [Category("Path Planning")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
         [DisplayName("Tool Diameter")]
         [Description("Tool Diameter")]
         public float ToolDiameter
@@ -125,7 +200,8 @@ namespace GUI
             set { router.ToolDiameter = FromDisplayUnits(value); }
         }
 
-        [TypeConverter(typeof(FourDecimalPlaceConverter))]
+        [Category("Path Planning")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
         [DisplayName("Move Height")]
         [Description("Tool height for rapid moves (set to a height above the workpiece and all clamps)")]
         public float MoveHeight
@@ -134,7 +210,8 @@ namespace GUI
             set { router.MoveHeight = FromDisplayUnits(value); }
         }
 
-        [TypeConverter(typeof(FourDecimalPlaceConverter))]
+        [Category("Path Planning")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
         [DisplayName("Max Cut Depth")]
         [Description("All generated paths will be above this z-height.")]
         public float MaxCutDepth
@@ -143,31 +220,53 @@ namespace GUI
             set { router.MaxCutDepth = FromDisplayUnits(value); }
         }
 
-        [TypeConverter(typeof(FourDecimalPlaceConverter))]
+        [Category("Path Planning")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
+        [DisplayName("Point Span")]
+        [Description("Distance between two points on generated paths")]
+        public float MaxPointDistance
+        {
+            get { return ToDisplayUnits(router.maxPointDistance); }
+            set { router.maxPointDistance = FromDisplayUnits(value); }
+        }
+
+        [Category("Path Planning")]
+        [DisplayName("Uniform Points")]
+        [Description("Encourage uniform point distance on generated paths")]
+        public bool ForcePathMaxDistanceBetweenPoints
+        {
+            get { return router.enforceMaxPointDistance; }
+            set { router.enforceMaxPointDistance = value; }
+        }
+
+        [Category("Robot")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
         [DisplayName("Cutting Speed")]
-        [Description("Cutting Speed (units per minute)")]
+        [Description("Cutting Speed (mm/second or inches/minute)")]
         public float RoutSpeed
         {
-            get { return ToDisplayUnits(robot.MaxCutSpeed); }
-            set { robot.MaxCutSpeed = FromDisplayUnits(value); }
+            get { return unitConverter.SpeedToUIUnits(robot.MaxCutSpeed); }
+            set { robot.MaxCutSpeed = unitConverter.SpeedFromUIUnits(value); }
         }
 
-        [TypeConverter(typeof(FourDecimalPlaceConverter))]
+        [Category("Robot")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
         [DisplayName("Moving Speed")]
-        [Description("Rapid movement speed (units per minute)")]
+        [Description("Rapid movement speed (mm/second or inches/minute)")]
         public float MoveSpeed
         {
-            get { return ToDisplayUnits(robot.MaxRapidSpeed); }
-            set { robot.MaxRapidSpeed = FromDisplayUnits(value); }
+            get { return unitConverter.SpeedToUIUnits(robot.MaxRapidSpeed); }
+            set { robot.MaxRapidSpeed = unitConverter.SpeedFromUIUnits(value); }
         }
 
-        [TypeConverter(typeof(FourDecimalPlaceConverter))]
+        [Category("Robot")]
+        [TypeConverter(typeof(ThreeDecimalPlaceConverter))]
         [DisplayName("Max Z Speed")]
-        [Description("Maximum possible Z axis speed (units per minute)")]
+        [Description("Maximum possible Z axis speed (mm/second or inches/minute)")]
         public float MaxAxisSpeeds
         {
-            get { return ToDisplayUnits(robot.MaxZSpeed); }
-            set { robot.MaxZSpeed = FromDisplayUnits(value); }
+            get { return unitConverter.SpeedToUIUnits(robot.MaxZSpeed); }
+            set { robot.MaxZSpeed = unitConverter.SpeedFromUIUnits(value); }
         }
     }
 }

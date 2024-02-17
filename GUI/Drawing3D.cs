@@ -25,7 +25,7 @@ namespace GUI
 
         Timer drawTimer;
 
-        public Drawing3D()
+        public Drawing3D() : base(new OpenTK.Graphics.GraphicsMode(32, 24, 0, 8))
         {
             this.InitializeComponent();
 
@@ -72,7 +72,7 @@ namespace GUI
             mouseDownLocation = e.Location;
             
             Ray pointer = viewport.GetPointerRay(e.Location);
-            clickedObject = GetClosestObject(pointer);
+            
 
             if (e.Button == System.Windows.Forms.MouseButtons.Right)
             {
@@ -86,8 +86,11 @@ namespace GUI
             }
 
             
-
-            clickedObject.MouseDown(pointer);
+            clickedObject = GetClosestObject(pointer) as IClickable3D;
+            if (clickedObject != null)
+            {
+                clickedObject.MouseDown(pointer);
+            }
 
             this.Invalidate();
         }
@@ -97,9 +100,9 @@ namespace GUI
             return viewport.GetPointerRay(mouseLocation);
         }
 
-        private IClickable3D GetClosestObject(Ray pointer)
+        private object GetClosestObject(Ray pointer)
         {
-            IClickable3D closestClickable = null;
+            object closestObject = null;
             float closest = float.PositiveInfinity;
             foreach (var o in objects)
             {
@@ -109,16 +112,20 @@ namespace GUI
                     float distance = clickable.DistanceToObject(pointer);
                     if (distance < closest)
                     {
-                        closestClickable = clickable;
+                        closestObject = o;
                         closest = distance;
                     }
                 }
             }
 
-            if (FilterSelectable(closestClickable))
+            if (FilterSelectable(closestObject))
             {
-                closestClickable.MouseHover(); // TODO: find a better way to handle hover indication...
-                return closestClickable;
+                IClickable3D closestClickable = closestObject as IClickable3D;
+                if (closestClickable != null)
+                {
+                    closestClickable.MouseHover(); // TODO: find a better way to handle hover indication...
+                }
+                return closestObject;
             }
             return viewport as IClickable3D;
         }
@@ -142,8 +149,12 @@ namespace GUI
             // Display a context menu?
             if (mouseRDown)
             {
+                Console.WriteLine("Mouse Right Unclick");
+                // Right-click down mouse move is rotate UI.
+                // If UI was rotated, don't do a context menu.
                 if (mouseDownLocation == e.Location)
                 {
+                    Console.WriteLine("Mouse Right UnclickUnclick");
                     if (clickedObject != null && clickedObject is TriangleMeshGUI)
                     {
                         System.Windows.Forms.ContextMenu menu = new ContextMenu();
@@ -157,8 +168,42 @@ namespace GUI
 
                         menu.Show(this, e.Location);
                     }
+                    else // More generic case - TODO: put TriangleMeshGUI into this generic case.
+                    {
+                        Ray pointer = viewport.GetPointerRay(e.Location);
+                        IRightClickable3D rightClickedObject = GetClosestObject(pointer) as IRightClickable3D;
+                        if (rightClickedObject != null)
+                        {
+                            string[] items = rightClickedObject.MouseRightClick(pointer);
+
+                            System.Windows.Forms.ContextMenu menu = new ContextMenu();
+                            foreach (string s in items)
+                            {
+                                string text = s;
+                                string displayName = s;
+                                object tag = rightClickedObject;
+                                if (text.Contains("<ACTION="))
+                                {
+                                    string[] result = text.Split('<');
+                                    string[] fields = result[1].Trim(new char[] { ' ', '>' }).Split(',');
+                                    displayName = result[0];
+                                    RightClickWithContext context = new RightClickWithContext();
+                                    context.target = rightClickedObject;
+                                    context.fields = fields;
+                                    context.original = displayName;
+                                    context.mouseEventArgs = e;
+                                    tag = context;
+                                }
+                                var item = new MenuItem(displayName, new EventHandler(objectRightClicked));
+                                item.Tag = tag;
+                                menu.MenuItems.Add(item);
+                            }
+                            menu.Show(this, e.Location);
+                        }
+                    }
                 }
             }
+
 
             mouseRDown = false;
             if (clickedObject != null)
@@ -166,6 +211,52 @@ namespace GUI
                 Ray pointer = viewport.GetPointerRay(e.Location);
                 clickedObject.MouseUp(pointer);
                 clickedObject = null;
+            }
+        }
+
+
+        private class RightClickWithContext
+        {
+            public IRightClickable3D target;
+            public string original;
+            public string[] fields;
+            public MouseEventArgs mouseEventArgs;
+        }
+
+        private void objectRightClicked(object sender, EventArgs e)
+        {
+            var item = sender as MenuItem;
+            if (item != null)
+            {
+                IRightClickable3D rightClickedObject = item.Tag as IRightClickable3D;
+                if (rightClickedObject != null)
+                {
+                    rightClickedObject.MouseRightClickSelect(item.Text);
+                }
+                RightClickWithContext rightClickWithContext = item.Tag as RightClickWithContext;
+                if (rightClickWithContext != null)
+                {
+                    double start = 0.0f;
+                    foreach (string s in rightClickWithContext.fields)
+                    {
+                        if (s.Contains("VALUE="))
+                        {
+                            double.TryParse(s.Remove(0, 6), out start);
+                        }
+                    }
+                    start *= 25.4f; // Translate to millimeters
+                    
+                    ModalFloatInput m = new ModalFloatInput("Change Board Thickness", "Board Thickness (mm):", start);
+                    m.Location = PointToScreen(rightClickWithContext.mouseEventArgs.Location);
+                    m.ShowDialog();
+                    
+                    if (m.Confirmed)
+                    {
+                        double value = m.Result / 25.4f; // And back to inches
+                        rightClickWithContext.target.MouseRightClickSelect(rightClickWithContext.original + 
+                            value.ToString());
+                    }
+                }
             }
         }
 
@@ -243,7 +334,7 @@ namespace GUI
                 }
                 else
                 {
-                    IClickable3D hovered = GetClosestObject(pointer);
+                    IClickable3D hovered = GetClosestObject(pointer) as IClickable3D;
                     if (hovered != null)
                     {
                         hoveredObject = hovered;

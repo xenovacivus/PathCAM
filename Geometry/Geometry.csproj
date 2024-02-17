@@ -53,10 +53,13 @@
     <Compile Include="LineSegment.cs" />
     <Compile Include="LineStrip.cs" />
     <Compile Include="Loaders\DAE_Loader.cs" />
+    <Compile Include="Loaders\DRL_Loader.cs" />
+    <Compile Include="Loaders\GERBER_Loader.cs" />
     <Compile Include="Loaders\OBJ_Loader.cs" />
     <Compile Include="Loaders\STL_Loader.cs" />
     <Compile Include="Plane.cs" />
     <Compile Include="Polygon.cs" />
+    <Compile Include="Polygon2D.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Ray.cs" />
     <Compile Include="Slice.cs" />
@@ -68,9 +71,9 @@
       <Project>{9b062971-a88e-4a3d-b3c9-12b78d15fa66}</Project>
       <Name>clipper_library</Name>
     </ProjectReference>
-    <ProjectReference Include="..\ThirdParty\Triangle\Triangle.csproj">
-      <Project>{f7907a0a-b75f-400b-9e78-bfad00db4d6b}</Project>
-      <Name>Triangle</Name>
+    <ProjectReference Include="..\ThirdParty\LibTessDotNet-master\LibTessDotNet\LibTessDotNet.csproj">
+      <Project>{1eba55c7-4761-4786-a1e7-4961935703be}</Project>
+      <Name>LibTessDotNet</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

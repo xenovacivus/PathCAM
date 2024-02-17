@@ -39,7 +39,7 @@ namespace GUI
             }
             else
             {
-                if (comboBox1.SelectedItem == null || comboBox1.SelectedItem == "")
+                if (comboBox1.SelectedItem == null || comboBox1.SelectedItem.ToString() == "")
                 {
                     connect.Enabled = false;
                 }
@@ -103,32 +103,30 @@ namespace GUI
 
         private void connect_Click(object sender, EventArgs e)
         {
-            if (port.IsOpen)
+            try
             {
-                port.Close();
-                connect.Text = "Connect";
+                // Shouldn't be able to get into this state.
+                if (port.IsOpen)
+                {
+                    port.Close();
+                }
+
+                int baudRate = Convert.ToInt32(this.baudBox.Text);
+                string portName = comboBox1.Text;
+                port.Open(portName, baudRate);
+                this.Close();
             }
-            else
+            catch (NullReferenceException)
             {
-                try
-                {
-                    int baudRate = Convert.ToInt32(this.baudBox.Text);
-                    string portName = comboBox1.Text;
-                    port.Open(portName, baudRate);
-                    connect.Text = "Disconnect";
-                }
-                catch (NullReferenceException)
-                {
-                    MessageBox.Show("Error Opening Com Port: No Port Name Selected!");
-                }
-                catch (FormatException)
-                {
-                    MessageBox.Show("Error Opening Com Port: Invalid Baud Rate!");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error Opening Com Port: " + ex.Message);
-                }
+                MessageBox.Show("Error Opening Com Port: No Port Name Selected!");
+            }
+            catch (FormatException)
+            {
+                MessageBox.Show("Error Opening Com Port: Invalid Baud Rate!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error Opening Com Port: " + ex.Message);
             }
         }
 

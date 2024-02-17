@@ -21,7 +21,8 @@ namespace GUI
         private Robot.Robot robot;
         private SerialPortWrapper serial;
         private COMPortForm comPortForm = null;
-        
+        Settings.UnitConverter unitConverter;
+
         public RobotControl()
         {
             InitializeComponent();
@@ -54,10 +55,11 @@ namespace GUI
             }
             else
             {
+                this.label3.Text = robot.IsConnected ? "Connected!" : "disconnected...";
+                this.label4.Text = robot.ConnectedMachineType;
                 IRobotCommandWithStatus status = o as IRobotCommandWithStatus;
                 if (status != null)
                 {
-                    this.runButton.Enabled = true;
                     this.steppersEnabledBox.Enabled = true;
                     this.zbox.Enabled = true;
                     this.zGo.Enabled = true;
@@ -65,108 +67,105 @@ namespace GUI
                     this.steppersEnabledBox.Checked = status.SteppersEnabled;
                     if (status.Pausing)
                     {
-                        pause_resume_button.Text = "Pausing...";
-                        pause_resume_button.Enabled = false;
+                        if (runButton.Text != "Pausing...")
+                        {
+                            runButton.Text = "Pausing...";
+                            runButton.Enabled = false;
+                        }
                     }
                     else
                     {
                         if (status.Paused)
                         {
-                            if (pause_resume_button.Text != "Resume")
+                            if (runButton.Text != "Resume" || !runButton.Enabled)
                             {
+                                runButton.Text = "Resume";
+                                runButton.Enabled = true;
                                 cancelButton.Enabled = true;
-                                pause_resume_button.Text = "Resume";
+                            }
+                        }
+                        else if (status.Idle)
+                        {
+                            if (runButton.Text != "Run" || !runButton.Enabled)
+                            {
+                                runButton.Text = "Run";
+                                runButton.Enabled = true;
+                                cancelButton.Enabled = false;
                             }
                         }
                         else
                         {
-                            if (pause_resume_button.Text != "Pause")
+                            if (runButton.Text != "Pause" || !runButton.Enabled)
                             {
-                                pause_resume_button.Text = "Pause";
+                                runButton.Text = "Pause";
+                                runButton.Enabled = true;
+                                cancelButton.Enabled = false;
                             }
                         }
-                        pause_resume_button.Enabled = true;
+                    }
+                }
+                else
+                {
+                    if (!serial.IsOpen)
+                    {
+                        this.comPortButton.Text = "Connect";
                     }
                 }
             }
         }
 
+
+        
+        internal void AssignUnitScale(Settings.UnitConverter newUnitConverter)
+        {
+            newUnitConverter.onUnitsChange += new EventHandler(UnitChangeEventHandler);
+            unitConverter = newUnitConverter;
+        }
+
+        float zGoValue = 0.0f;
+
+        void UnitChangeEventHandler(object o, EventArgs e)
+        {
+            Settings.UnitConverter unitConverter = o as Settings.UnitConverter;
+            if (o == null)
+            {
+                return;
+            }
+            // If in mm, increment by 0.01.
+            // If in in, increment by 0.001.
+            if (unitConverter.currentSelectedUnits == Settings.MeasurementUnitTypes.Millimeters)
+            {
+                numericUpDown1.Increment = (decimal)0.01;
+                numericUpDown1.DecimalPlaces = 2;
+                numericUpDown1.Maximum = (decimal)2540.0;
+            }
+            else
+            {
+                numericUpDown1.Increment = (decimal)0.001;
+                numericUpDown1.DecimalPlaces = 3;
+                numericUpDown1.Maximum = (decimal)100;
+            }
+            numericUpDown1.Minimum = -numericUpDown1.Maximum;
+            numericUpDown1.Value = (decimal)unitConverter.ToUIUnits(robot.z_offset);
+
+            zbox.Text = string.Format("{0:0.###}", unitConverter.ToUIUnits(zGoValue));
+        }
+
         void IOpenGLDrawable.Draw()
         {
+            float diameter = router.ToolDiameter;
+            diameter = Math.Max(0.1f, diameter);
+
             // Draw the tool location as a cone
             Vector3 position = robot.GetPosition();
             GL.Color3(Color.Silver);
-            Polyhedra.DrawCone(position + new Vector3(0, 0, router.ToolDiameter), position, router.ToolDiameter / 2.0f);
+            Polyhedra.DrawCone(position + new Vector3(0, 0, diameter), position, diameter / 2.0f);
 
             Vector3 physicalPosition = robot.GetPhysicalPosition();
             GL.Color3(Color.Black);
-            Polyhedra.DrawCone(physicalPosition + new Vector3(0, 0, router.ToolDiameter), physicalPosition, router.ToolDiameter / 2.0f);
-
-
-            //// Draw the past positions & velocity graph
-            //float lastTime = 0;
-            //Vector3 lastPos = new Vector3(0, 0, 0);
-            //float lastVel = 0;
-            //bool lastIsGood = false;
-            //GL.Disable(EnableCap.Lighting);
-            //lock (previousPoints)
-            //{
-            //    Vector3 lastpoint = new Vector3(0, 0, 0);
-            //    for (int i = 0; i < previousPoints.Count(); i++)
-            //    {
-            //        PreviousPoint point = previousPoints[i];
-            //        float age_delta = point.createTime - lastTime;
-            //        float time = age_delta / 1000.0f; // Age is microseconds, time is seconds
-            //        float pos_delta = (point.location - lastPos).Length;
-            //        float vel = pos_delta / time; // Inches per second
-            //        Vector3 atpoint = new Vector3(point.location.X * 1000, point.location.Y * 1000, point.location.Z * 1000);
-            //        if (lastIsGood)
-            //        {
-            //            GL.LineWidth(1);
-            //            GL.Begin(PrimitiveType.Lines);
-            //            GL.Color3(Color.LightGray);
-            //            for (int j = 0; j < 5; j++)
-            //            {
-            //                GL.Vertex3(lastpoint + new Vector3(0, 0, j * 10));
-            //                GL.Vertex3(lastpoint + new Vector3(0, 0, j * 10 + 10));
-            //
-            //                GL.Vertex3(lastpoint + new Vector3(0, 0, j * 10));
-            //                GL.Vertex3(atpoint + new Vector3(0, 0, j * 10));
-            //            }
-            //            GL.End();
-            //            GL.LineWidth(2);
-            //            GL.Begin(PrimitiveType.Lines);
-            //            GL.Color3(Color.Orange);
-            //            GL.Vertex3(lastpoint + new Vector3(0, 0, lastVel * lastVel * 200));
-            //            GL.Vertex3(atpoint + new Vector3(0, 0, vel * vel * 200));
-            //            GL.End();
-            //        }
-            //        lastVel = vel;
-            //        lastpoint = atpoint;
-            //
-            //        lastPos = point.location;
-            //        lastTime = point.createTime;
-            //        lastIsGood = true;
-            //    }
-            //}
-            //GL.Enable(EnableCap.Lighting);
-            //GL.LineWidth(1);
-
+            Polyhedra.DrawCone(physicalPosition + new Vector3(0, 0, diameter), physicalPosition, diameter / 2.0f);
         }
 
-        private void pause_resume_button_Click(object sender, EventArgs e)
-        {
-            if (pause_resume_button.Text == "Pause")
-            {
-                robot.SendPauseCommand();
-            }
-            else if (pause_resume_button.Text == "Resume")
-            {
-                robot.SendResumeCommand();
-                cancelButton.Enabled = false;
-            }
-            pause_resume_button.Enabled = false;
-        }
 
         private void cancelButton_Click(object sender, EventArgs e)
         {
@@ -175,8 +174,9 @@ namespace GUI
             robot.AddCommand(new MoveTool(new Vector3(position.X, position.Y, router.MoveHeight), MoveTool.SpeedType.Rapid));
             robot.AddCommand(new MoveTool(new Vector3(0, 0, router.MoveHeight), MoveTool.SpeedType.Rapid));
             robot.SendResumeCommand();
-            this.pause_resume_button.Enabled = false;
             this.cancelButton.Enabled = false;
+            runButton.Text = "Run";
+            runButton.Enabled = true;
         }
 
         private void steppersEnabledBox_Click(object sender, EventArgs e)
@@ -193,44 +193,88 @@ namespace GUI
 
         private void runButton_Click(object sender, EventArgs e)
         {
-            foreach (ICommand command in router.GetCommands())
+            if (runButton.Text == "Run")
             {
-                robot.AddCommand(command);
+                foreach (ICommand command in router.GetCommands())
+                {
+                    robot.AddCommand(command);
+                }
+                //runButton.Text = "Pause";
             }
+            else if (runButton.Text == "Pause")
+            {
+                robot.SendPauseCommand();
+                //runButton.Text = "Pausing...";
+                runButton.Enabled = false;
+            }
+            else if (runButton.Text == "Resume")
+            {
+                robot.SendResumeCommand();
+                //runButton.Text = "Resuming...";
+                cancelButton.Enabled = false;
+            }
+            runButton.Enabled = false;
         }
 
         private void zGo_Click(object sender, EventArgs e)
         {
-            float f = float.Parse(zbox.Text);
-            MoveTool move = new MoveTool(new Vector3(0, 0, f), MoveTool.SpeedType.Rapid);
-            robot.AddCommand(move);
+            if (float.TryParse(zbox.Text, out float newValue))
+            {
+                zGoValue = unitConverter.FromUIUnits(newValue);
+                MoveTool move = new MoveTool(new Vector3(0, 0, zGoValue), MoveTool.SpeedType.Rapid);
+                robot.AddCommand(move);
+            }
         }
 
-        private void button4_Click(object sender, EventArgs e)
+        private void comPortButton_Click(object sender, EventArgs e)
         {
-            if (comPortForm == null || comPortForm.IsDisposed)
+            if (serial.IsOpen)
             {
-                comPortForm = new COMPortForm(serial);
-            }
-
-            if (!comPortForm.Visible)
-            {
-                comPortForm.Show(null);
+                try
+                {
+                    serial.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error closing serial port: " + ex.Message);
+                }
+                comPortButton.Text = "Connect";
             }
             else
             {
-                comPortForm.Focus();
+                if (comPortForm == null || comPortForm.IsDisposed)
+                {
+                    comPortForm = new COMPortForm(serial);
+                    comPortForm.Location = this.PointToScreen(new Point(0, 0));
+                    comPortForm.FormClosed += new FormClosedEventHandler(formClosedEventHandler);
+                }
+                if (!comPortForm.Visible)
+                {
+                    comPortForm.Show(null);
+                }
+                else
+                {
+                    comPortForm.Focus();
+                }
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void formClosedEventHandler(object o, FormClosedEventArgs e)
+        {
+            if (serial.IsOpen)
+            {
+                comPortButton.Text = "Disconnect";
+            }
+        }
+
+        private void zeroButton_Click(object sender, EventArgs e)
         {
             robot.Zero();
         }
 
         private void numericUpDown1_ValueChanged(object sender, EventArgs e)
         {
-            robot.z_offset = (float)numericUpDown1.Value;
+            robot.z_offset = unitConverter.FromUIUnits((float)numericUpDown1.Value);
             this.zGo_Click(null, EventArgs.Empty);
         }
 

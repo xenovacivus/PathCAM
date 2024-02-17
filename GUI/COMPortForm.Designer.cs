@@ -59,7 +59,7 @@
             this.baudBox.Name = "baudBox";
             this.baudBox.Size = new System.Drawing.Size(89, 20);
             this.baudBox.TabIndex = 10;
-            this.baudBox.Text = "9600";
+            this.baudBox.Text = "115200";
             // 
             // connect
             // 
@@ -92,7 +92,9 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.baudBox);
             this.Controls.Add(this.connect);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "COMPortForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "COMPort";
             this.ResumeLayout(false);
             this.PerformLayout();

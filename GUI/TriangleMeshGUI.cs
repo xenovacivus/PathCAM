@@ -287,6 +287,17 @@ namespace GUI
                     GL.Vertex3(line.B);
                 }
                 GL.End();
+                // Draw each point on the edges (debugging and point count)
+                GL.Color3(Color.Black);
+                GL.PointSize(3);
+                GL.Begin(PrimitiveType.Points);
+                foreach (var t in base.Triangles)
+                {
+                    GL.Vertex3(t.A);
+                    GL.Vertex3(t.B);
+                    GL.Vertex3(t.C);
+                }
+                GL.End();
                 if (useDisplayLists)
                 {
                     GL.EndList();

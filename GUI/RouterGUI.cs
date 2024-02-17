@@ -58,7 +58,7 @@ namespace GUI
                 }
                 GL.End();
 
-                GL.PointSize(2);
+                GL.PointSize(4);
                 GL.Color3(Color.Red);
                 GL.Begin(PrimitiveType.Points);
                 for (int i = 0; i < commands.Count(); i++)

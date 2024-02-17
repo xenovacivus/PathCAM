@@ -74,6 +74,71 @@ namespace GUI
             GL.Enable(EnableCap.Lighting);
         }
 
+        public static void DrawCircle(Vector3 center, float radius, Vector3 normal, int sides = 24)
+        {
+            normal.Normalize(); // Just make sure it's normalized.
+            Vector3 x = GetPerpendicular(normal);
+            Vector3 y = Vector3.Cross(normal, x);
+            float twopi = (float)(2.0f * Math.PI);
+            float inc = twopi / sides;
+
+            GL.Begin(PrimitiveType.TriangleFan);
+            GL.Normal3(normal);
+            GL.Vertex3(center);
+            for (float theta = 0; theta < (twopi + 0.5f * inc); theta += inc)
+            {
+                float thetaNext = theta + inc;
+                float sintheta = (float)Math.Sin(theta);
+                float costheta = (float)Math.Cos(theta);
+                GL.Vertex3(center + radius * (x * sintheta + y * costheta));
+            }
+            GL.End();
+        }
+
+        public static void DrawFatLine(Vector3 start, Vector3 end, float width, Vector3 normal)
+        {
+            Vector3 direction = end - start;
+            direction.Normalize();
+            Vector3 perp = Vector3.Cross(normal, direction);
+
+            GL.Begin(PrimitiveType.Quads);
+            GL.Normal3(normal);
+            GL.Vertex3(start + 0.5f * perp * width);
+            GL.Vertex3(end + 0.5f * perp * width);
+            GL.Vertex3(end - 0.5f * perp * width);
+            GL.Vertex3(start - 0.5f * perp * width);
+            GL.End();
+
+            // Add an arrow pointer in the middle
+            GL.Begin(PrimitiveType.TriangleFan);
+            GL.Normal3(normal);
+            GL.Vertex3((start + end) * 0.5f - direction * width * 0.8f);
+            GL.Vertex3((start + end) * 0.5f - direction * width + perp * width * 2);
+            GL.Vertex3((start + end) * 0.5f + direction * width * 2f);
+            GL.Vertex3((start + end) * 0.5f - direction * width - perp * width * 2);
+            GL.End();
+        }
+
+        public static void DrawCircleLine(Vector3 center, float radius, Vector3 normal, int sides = 24)
+        {
+            normal.Normalize(); // Just make sure it's normalized.
+            Vector3 x = GetPerpendicular(normal);
+            Vector3 y = Vector3.Cross(normal, x);
+            float twopi = (float)(2.0f * Math.PI);
+            float inc = twopi / sides;
+
+            GL.Begin(PrimitiveType.LineLoop);
+            GL.Normal3(normal);
+            for (float theta = 0; theta < (twopi - 0.5f * inc); theta += inc)
+            {
+                float thetaNext = theta + inc;
+                float sintheta = (float)Math.Sin(theta);
+                float costheta = (float)Math.Cos(theta);
+                GL.Vertex3(center + radius * (x * sintheta + y * costheta));
+            }
+            GL.End();
+        }
+
         public static void DrawCylinder(Vector3 from, Vector3 to, float radius, int sides = 24)
         {
             Vector3 direction = to - from;

@@ -2,10 +2,10 @@
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
 
   <Product Name='PathCAM' Id='8454EA61-B731-447D-80DF-488DC83D3986' UpgradeCode='1419EB08-9DC9-4986-B9F7-6B66377D4776'
-    Language='1033' Codepage='1252' Version='1.0.0' Manufacturer='Subvertlab'>
+    Language='1033' Codepage='1252' Version='1.0.1' Manufacturer='Subvertlab'>
 
     <Package Id='*' Keywords='Installer' Description="PathCAM Installer"
-      Comments='PathCAM - Toolpath generation software for CNC robots' Manufacturer='Subvertlab'
+      Comments='PathCAM - Toolpath generation software for CNC robots (Gerber Loader Beta!)' Manufacturer='Subvertlab'
       InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 	  
 	  <Media Id='1' Cabinet='PathCAM.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1' />
@@ -37,7 +37,8 @@
 			  <File Id='QuantumConcepts_Formats_STLDLL' Name='QuantumConcepts.Formats.StereoLithography.dll' DiskId='1' Source='..\GUI\Bin\Release\QuantumConcepts.Formats.StereoLithography.dll' />
 			  <File Id='RobotDLL' Name='Robot.dll' DiskId='1' Source='..\GUI\Bin\Release\Robot.dll' />
 			  <File Id='SerialDLL' Name='Serial.dll' DiskId='1' Source='..\GUI\Bin\Release\Serial.dll' />
-			  <File Id='TriangleDLL' Name='Triangle.dll' DiskId='1' Source='..\GUI\Bin\Release\Triangle.dll' />
+			  <!--File Id='TriangleDLL' Name='Triangle.dll' DiskId='1' Source='..\GUI\Bin\Release\Triangle.dll' /-->
+			  <File Id='LibTessDotNet' Name='LibTessDotNet.dll' DiskId='1' Source='..\GUI\Bin\Release\LibTessDotNet.dll' />
 			  
             </Component>
 			

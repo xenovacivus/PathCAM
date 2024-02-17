@@ -256,6 +256,13 @@ namespace Robot
             public override bool Pausing { get { return pausing; } }
             public override bool SteppersEnabled { get { return steppers_enabled; } }
 
+            public override bool IsValid
+            {
+                get { return true; }
+            }
+
+            public override bool Idle => throw new NotImplementedException();
+
             List<byte> data = new List<byte>();
             internal override bool ProcessResponse(byte b)
             {

@@ -11,6 +11,10 @@
     <AssemblyName>PathCAM</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -23,12 +27,8 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -39,6 +39,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -75,13 +76,21 @@
     <Compile Include="COMPortForm.Designer.cs">
       <DependentUpon>COMPortForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="GerberGUI.cs" />
+    <Compile Include="IRightClickable3D.cs" />
+    <Compile Include="ModalFloatInput.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ModalFloatInput.Designer.cs">
+      <DependentUpon>ModalFloatInput.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PolygonDrawing.cs" />
     <Compile Include="RobotControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="RobotControl.Designer.cs">
       <DependentUpon>RobotControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="RobotGUI.cs" />
     <Compile Include="IClickable3D.cs" />
     <Compile Include="Interfaces\IOpenGLDrawable.cs" />
     <Compile Include="Polyhedra.cs" />
@@ -106,9 +115,14 @@
     <Compile Include="Viewport3d.cs" />
     <EmbeddedResource Include="COMPortForm.resx">
       <DependentUpon>COMPortForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ModalFloatInput.resx">
+      <DependentUpon>ModalFloatInput.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="PathCAM.resx">
       <DependentUpon>PathCAM.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -122,9 +136,11 @@
     </Compile>
     <EmbeddedResource Include="Drawing3D.resx">
       <DependentUpon>Drawing3D.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="RobotControl.resx">
       <DependentUpon>RobotControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -159,6 +175,10 @@
     <ProjectReference Include="..\Serial\Serial.csproj">
       <Project>{9477fd2c-fe8f-4653-ab25-bfa14338a932}</Project>
       <Name>Serial</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ThirdParty\clipper_library\clipper_library.csproj">
+      <Project>{9b062971-a88e-4a3d-b3c9-12b78d15fa66}</Project>
+      <Name>clipper_library</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -53,6 +53,11 @@ namespace Geometry
             get { return b; }
         }
 
+        public Vector3 Direction
+        {
+            get { return Vector3.Normalize((b - a)); }
+        }
+
         public float Length
         {
             get { return (a - b).Length; }

@@ -28,7 +28,7 @@ namespace Serial
     {
         public SerialPort port;
 
-        public delegate void newDataAvailableDelegate(byte data);
+        public delegate void newDataAvailableDelegate(byte[] data);
         public newDataAvailableDelegate newDataAvailable;
 
         private void TxByte(byte data)
@@ -47,11 +47,12 @@ namespace Serial
             }
         }
 
+        System.Timers.Timer portPollTimer;
         public SerialPortWrapper()
         {
             // Setup the serial port defaults
             port = new SerialPort();
-            port.BaudRate = 9600;
+            port.BaudRate = 115200;
             port.DataBits = 8;
             port.Parity = Parity.None;
             port.Handshake = Handshake.None;
@@ -61,39 +62,55 @@ namespace Serial
             port.RtsEnable = false;
             port.Encoding = System.Text.Encoding.Default;
 
+            
+            port.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
             // Earlier versions of Mono don't fire this event, so poll instead.
-            //port.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
-            System.Timers.Timer t = new System.Timers.Timer(10);
-            t.Elapsed += t_Elapsed;
-            t.Start();
+            // Added a lock, so polling and the proper callback should work together.
+            portPollTimer = new System.Timers.Timer(10);
+            portPollTimer.Elapsed += portPollTimer_Elapsed;
+            portPollTimer.Start();
         }
 
-        void t_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        void portPollTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            portPollTimer.Stop();
             port_DataReceived(null, null);
+            portPollTimer.Start();
         }
 
         public void Transmit(byte[] data)
         {
+            //Console.WriteLine("SERIAL TX: '" + System.Text.Encoding.UTF8.GetString(data) + "'");
             port.Write(data, 0, data.Length);
         }
 
+        object portLockObject = new object();
         void port_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            try
+            lock (portLockObject)
             {
-                while (port.IsOpen && port.BytesToRead > 0)
+                try
                 {
-                    byte data = (byte)port.ReadByte();
-                    
-                    if (newDataAvailable != null)
+                    int bytesToRead;
+                    while (port.IsOpen && (bytesToRead = port.BytesToRead) > 0)
                     {
-                        newDataAvailable(data);
+                        byte[] buffer = new byte[bytesToRead];
+                        port.Read(buffer, 0, bytesToRead);
+
+                        // This works, but not as fast.
+                        //byte[] buffer = new byte[1];
+                        //buffer[0] = (byte)port.ReadByte();
+
+                        if (newDataAvailable != null)
+                        {
+                            newDataAvailable(buffer);
+                        }
                     }
                 }
-            }
-            catch (Exception)
-            {
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Exception processing serial data: " + ex.Message);
+                }
             }
         }
 

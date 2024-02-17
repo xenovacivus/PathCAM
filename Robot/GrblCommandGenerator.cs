@@ -38,7 +38,8 @@ namespace Robot
 
             return null;
         }
-
+        
+        private static Vector3 lastLocation = Vector3.Zero;
         private class GrblStatusCommand : IRobotCommandWithStatus
         {
             private Vector3 location = new Vector3(0, 0, 0);
@@ -46,6 +47,7 @@ namespace Robot
             private bool canAcceptMoveCommand = false;
             private bool paused = false;
             private bool pausing = false;
+            private bool isValid = false;
 
             public GrblStatusCommand(GrblCommandGenerator parent)
             {
@@ -58,15 +60,24 @@ namespace Robot
                 return new byte[] { (byte)'?' };
             }
 
+            // Returns true when enough data is processed to
+            // complete a command.  isValid will be true if
+            // the parsed data is coherent.
             internal override bool ProcessResponse(byte data)
             {
+                
+                isValid = true;
                 var result = parent.ProcessGrblByte(data);
                 if (result != null)
                 {
-                    Console.WriteLine("Received GRBL Data: " + result);
+                    // Slow down the response time
+                    //System.Threading.Thread.Sleep(100);
+
                     if (result.Equals("ok", StringComparison.OrdinalIgnoreCase))
                     {
+                        Console.WriteLine("Processed GRBL Data: " + result);
                         canAcceptMoveCommand = true;
+                        return false; // Still expecting more data to come?
                     }
                     else if (result.StartsWith("<") && result.EndsWith(">"))
                     {
@@ -101,18 +112,40 @@ namespace Robot
                         }
                         if (position.Count != 3)
                         {
+                            Console.WriteLine("Processed GRBL Data (bad position): " + result);
+                            isValid = false;
                             return false;
                         }
+                        
                         location.X = position[0];
                         location.Y = position[1];
                         location.Z = position[2];
                         location = location / 25.4f;
+
+                        // Update for GRBL V0.9: when going into feed hold, the status
+                        // continues to come back as "hold" even after the machine is
+                        // done moving.
+                        string pausingContext = "";
+                        if (pausing && lastLocation == location)
+                        {
+                            pausing = false;
+                            paused = true;
+                            pausingContext = " (paused)";
+                        }
+
+                        lastLocation = location;
+                        Console.WriteLine("Processed GRBL Data: " + result + pausingContext);
                         return true;
                     }
                     else
                     {
                         Console.WriteLine("Command Not Understood: " + result);
+                        isValid = false;
+                        // This will result in an eventual timeout and reset, but that's OK.
+                        // Apparently there's some communication error.
+                        return false;
                     }
+                    
                 }
                 return false;
             }
@@ -146,16 +179,25 @@ namespace Robot
             {
                 get { return canAcceptMoveCommand; }
             }
+
+            public override bool IsValid
+            {
+                get { return isValid; }
+            }
+
+            public override bool Idle => throw new NotImplementedException();
         }
 
-        private class GrblMoveCommand : GrblStatusCommand
+        private class GrblMoveCommand : IRobotCommand
         {
             private float target_mm_per_minute;
             private Vector3 toLocation = new Vector3(0, 0, 0);
-            
+            private GrblCommandGenerator parent;
+
             public GrblMoveCommand(GrblCommandGenerator parent, Vector3 location, float inches_per_second)
-                : base(parent)
+                : base()
             {
+                this.parent = parent;
                 toLocation = location;
                 target_mm_per_minute = inches_per_second * 25.4f * 60.0f;
             }
@@ -163,9 +205,27 @@ namespace Robot
             internal override byte[] GenerateCommand()
             {
                 var target_mm = toLocation * 25.4f;
-                String s = String.Format("F{0:F3}\r\nG1 X{1:F4} Y{2:F4} Z{3:F4}\r\n?", target_mm_per_minute, target_mm.X, target_mm.Y, target_mm.Z);
+                String s = String.Format("F{0:F3}\r\nG1 X{1:F4} Y{2:F4} Z{3:F4}\r\n", target_mm_per_minute, target_mm.X, target_mm.Y, target_mm.Z);
                 Console.WriteLine("Sending: " + s);
                 return System.Text.Encoding.ASCII.GetBytes(s);
+            }
+
+            internal override bool ProcessResponse(byte data)
+            {
+                var result = parent.ProcessGrblByte(data);
+                if (result == null)
+                {
+                    return false; // Not enough bytes for a response yet
+                }
+                // Slow down the response time
+                //System.Threading.Thread.Sleep(100);
+
+                if (result.Equals("ok", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine("Processed GRBL Data: " + result);
+                    return true; // Still expecting more data to come?
+                }
+                return true;
             }
         }
 

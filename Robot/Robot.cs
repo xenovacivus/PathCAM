@@ -24,6 +24,7 @@ using Serial;
 using System.Timers;
 using OpenTK;
 using Commands;
+using System.Diagnostics;
 
 namespace Robot
 {
@@ -32,53 +33,104 @@ namespace Robot
         private Queue<ICommand> commands = new Queue<ICommand>();
         public EventHandler onRobotStatusChange;
 
-        private IRobotCommand currentCommand = null;
+        //private IRobotCommand currentCommand = null;
         private SerialPortWrapper serial;
         private Timer t;
         private int elapsedCounter = 0;
-        private Vector3 currentPosition = new Vector3(0, 0, 0);
-        private Vector3 lastPosition = new Vector3(0, 0, 0);
-        private bool lastPositionKnown = false;
+        //private Vector3 currentPosition = new Vector3(0, 0, 0);
+        //private Vector3 lastPosition = new Vector3(0, 0, 0);
+        //private bool lastPositionKnown = false;
 
         private const float minSpeed = 0.01f; // All speeds are clamped to this.
-        private float maxZSpeed = 30;
-        private float maxCutSpeed = 100.0f;
-        private float maxRapidSpeed = 250.0f;
-
-        bool sendResumeCommand = false;
-        bool sendPauseCommand = false;
-        bool sendCancelCommand = false;
-        bool sendEnableStepperCommand = false;
-        bool sendDisableStepperCommand = false;
-
-        bool sendZeroCommand = false;
-
+        private float maxZSpeed = 30.0f * 60.0f / 25.4f;
+        private float maxCutSpeed = 30.0f * 60.0f / 25.4f;
+        private float maxRapidSpeed = 100.0f * 60.0f / 25.4f;
 
         public float z_offset = 0;
 
-
+        private IMachine machine = null;
 
         public void Zero()
         {
-            sendZeroCommand = true;
-            // TODO: combine with logic for pause commands
+            if (machine != null)
+            {
+                machine.Zero();
+            }
         }
+
+        public class BasicStatus : IRobotCommandWithStatus
+        {
+            public bool idle = false;
+            public bool paused = false;
+            public bool pausing = false;
+            public bool steppersEnabled = true;
+            public Vector3 currentPosition = Vector3.Zero;
+
+            public override bool Idle
+            {
+                get { return idle; }
+            }
+            public override bool Paused
+            {
+                get { return paused; }
+            }
+
+            public override bool Pausing
+            {
+                get { return pausing; }
+            }
+
+            public override bool SteppersEnabled
+            {
+                get { return steppersEnabled; }
+            }
+
+            public override Vector3 CurrentPosition
+            {
+                get { return currentPosition; }
+            }
+
+            public override float Time => throw new NotImplementedException();
+            public override bool CanAcceptMoveCommand => throw new NotImplementedException();
+            public override bool IsValid => throw new NotImplementedException();
+            internal override byte[] GenerateCommand()
+            {
+                throw new NotImplementedException();
+            }
+            internal override bool ProcessResponse(byte data)
+            {
+                throw new NotImplementedException();
+            }
+        }
+        BasicStatus currentStatus = new BasicStatus();
 
         public void SendPauseCommand()
         {
-            sendPauseCommand = true;
-            sendResumeCommand = false;
+            if (machine != null)
+            {
+                machine.Pause();
+                currentStatus.pausing = true;
+                currentStatus.paused = false;
+                onRobotStatusChange(currentStatus, null);
+            }
         }
 
         public void SendResumeCommand()
         {
-            sendResumeCommand = true;
-            sendPauseCommand = false;
+            if (machine != null)
+            {
+                machine.Resume();
+                // leave it up to the machine status to move the state
+            }
         }
 
         public void CancelPendingCommands()
         {
-            sendCancelCommand = true;
+            if (machine != null)
+            {
+                // This will leave the machine stopped where it is.
+                machine.ClearPendingCommands();
+            }
             lock (commands)
             {
                 commands.Clear();
@@ -87,31 +139,34 @@ namespace Robot
 
         public void EnableMotors()
         {
-            sendDisableStepperCommand = false;
-            sendEnableStepperCommand = true;
+            if (machine != null)
+            {
+                machine.EnableMotors();
+            }
         }
 
         public void DisableMotors()
         {
-            sendEnableStepperCommand = false;
-            sendDisableStepperCommand = true;
+            if (machine != null)
+            {
+                machine.DisableMotors();
+            }
         }
 
         public Vector3 GetPosition()
         {
-            return currentPosition - new Vector3(0, 0, z_offset);
+            return currentStatus.CurrentPosition - new Vector3(0, 0, z_offset);
         }
 
         public Vector3 GetPhysicalPosition()
         {
-            return currentPosition;
+            return currentStatus.CurrentPosition;
         }
 
         public void AddCommand(ICommand command)
         {
             commands.Enqueue(command);
         }
-
 
         public float MaxZSpeed
         {
@@ -132,10 +187,8 @@ namespace Robot
         }
 
 
-        ICommandGenerator commandGenerator;
         public Robot(SerialPortWrapper serial)
         {
-            commandGenerator = null;
             this.serial = serial;
             serial.newDataAvailable += new SerialPortWrapper.newDataAvailableDelegate(NewDataAvailable);
             t = new Timer();
@@ -211,7 +264,7 @@ namespace Robot
             {
                 // Create a string containing the bytes received in both hex and characters
                 var s = System.Text.Encoding.ASCII.GetString(accumulator.ToArray());
-                var retString = "{ " + string.Join(" ", accumulator.Select(b => string.Format("{0:X2}", b)).ToArray()) + " } " + s.TrimEnd(new char [] {'\r', '\n'});
+                var retString = "{ " + string.Join(" ", accumulator.Select(b => string.Format("{0:X2}", b)).ToArray()) + " } " + s.TrimEnd(new char[] { '\r', '\n' });
                 return retString;
             }
 
@@ -223,43 +276,93 @@ namespace Robot
 
         const int timeout_ms = 1000;
 
+        Stopwatch machineDetectionWatchdog = new Stopwatch();
+        List<byte[]> statusCommands = new List<byte[]>()
+        {
+            System.Text.Encoding.ASCII.GetBytes("?"), // For GRBL
+            System.Text.Encoding.ASCII.GetBytes("M115\n"), // For repetier, and maybe marlin?
+        };
+        int statusCommandIndex = 0;
+        int attempts = 0;
+
         void t_Elapsed(object sender, ElapsedEventArgs e)
         {
-            t.Stop();
+            //t.Stop();
             lock (thisLock)
             {
-                if (elapsedCounter > timeout_ms)
-                {
-                    if (currentCommand != null && currentCommand is RobotDetectionCommand)
-                    {
-                        Console.WriteLine("Unexpected Response from robot detection: " + (currentCommand as RobotDetectionCommand).DumpData());
-                    }
-                    // Expected reply not received within 1 second, assume command was lost.
-                    Console.WriteLine("Device Timeout!");
-                }
-
                 if (serial == null || !serial.IsOpen || elapsedCounter > timeout_ms)
                 {
-                    lastPositionKnown = false;
-                    commandGenerator = null;
-                    currentCommand = null;
+                    if (t.Interval != 100)
+                    {
+                        t.Interval = 100;
+                    }
                     elapsedCounter = 0;
+                    commands.Clear();
+                    machine = null;
+                    machineDetectionWatchdog.Stop();
+                    statusCommandIndex = 0;
+                    attempts = 0;
+                    onRobotStatusChange(null, null);
                 }
                 else
                 {
-                    if (currentCommand == null)
+                    if (machine != null)
                     {
-                        currentCommand = new RobotDetectionCommand();
-                        serial.Transmit(currentCommand.GenerateCommand());
-                        elapsedCounter = 0;
+                        machineDetectionWatchdog.Stop();
+                        if (t.Interval != 42)
+                        {
+                            t.Interval = 42;
+                        }
+                        // Periodically check for commands to generate (usually status commands).
+
+
+                        if (machine.CanAcceptMove && commands.Count > 0)
+                        {
+                            // TODO: other commands that are important?
+                            MoveTool move = commands.Dequeue() as MoveTool;
+                            if (move != null)
+                            {
+                                float inches_per_minute = move.Speed == MoveTool.SpeedType.Cutting ? MaxCutSpeed : MaxRapidSpeed;
+                                machine.AddMove(move.Target + new Vector3(0, 0, z_offset), inches_per_minute);
+                            }
+                        }
+
+                        byte[] command = machine.GenerateNextCommand();
+                        if (command.Length > 0)
+                        {
+                            //Console.WriteLine("Generated Periodic Command");
+                            serial.Transmit(command);
+                        }
                     }
                     else
                     {
-                        elapsedCounter += 50;
+                        if (!machineDetectionWatchdog.IsRunning || machineDetectionWatchdog.ElapsedMilliseconds > timeout_ms)
+                        {
+                            // Try to detect the machine.
+                            // Send a ? to GRBL - they reply almost immediately.
+                            dataBuffer.Length = 0;
+                            serial.Transmit(statusCommands[statusCommandIndex]);
+                            statusCommandIndex = (statusCommandIndex + 1) % statusCommands.Count;
+                            if (statusCommandIndex == 0)
+                            {
+                                attempts++;
+                            }
+                            machineDetectionWatchdog.Reset();
+                            machineDetectionWatchdog.Start();
+                            if (attempts > 1)
+                            {
+                                // Looped through all possible robot detectors,
+                                // nothing replied.  Disconnect.
+                                machineDetectionWatchdog.Stop();
+                                serial.Close();
+                            }
+                            //machine = new GrblMachine();
+                            onRobotStatusChange(null, null);
+                        }
                     }
                 }
             }
-            t.Start();
+            //t.Start();
         }
 
         private void ReceiveDataError(byte err)
@@ -268,137 +371,128 @@ namespace Robot
         }
 
         Object thisLock = new Object();
-        private void NewDataAvailable(byte data)
+
+        //     private string ProcessGrblByte(byte b)
+        //     {
+        //         dataBuffer.Append((char)b);
+        //
+        //         var response = dataBuffer.ToString();
+        //         if (response.EndsWith(">\r\n"))
+        //             }
+        // }
+        public bool IsConnected
         {
+            get { return machine != null; }
+        }
+
+        public string ConnectedMachineType
+        {
+            get
+            {
+                if (machine is GrblMachine)
+                {
+                    return "GRBL Machine";
+                }
+                else if (machine is RepetierMachine)
+                {
+                    return "Repetier?";
+                }
+                else if (machineDetectionWatchdog.IsRunning)
+                {
+                    return "Detecting...";
+                }
+                return "-";
+            }
+        }
+
+        StringBuilder dataBuffer = new StringBuilder();
+        private void NewDataAvailable(byte[] data)
+        {
+            //t.Stop();
             lock (thisLock)
             {
-                elapsedCounter = 0;
-                if (currentCommand == null)
+                if (machine != null)
                 {
-                    Console.WriteLine("Error: Received data, but no command was sent!");
-                    Console.Write(data.ToString("x") + ", ");
-                    Console.WriteLine();
+                    if (machine.ProcessByte(data))
+                    {
+                        if (machine.CanAcceptMove && commands.Count > 0)
+                        {
+                            // TODO: other commands that are important?
+                            MoveTool move = commands.Dequeue() as MoveTool;
+                            if (move != null)
+                            {
+                                float inches_per_minute = move.Speed == MoveTool.SpeedType.Cutting ? MaxCutSpeed : MaxRapidSpeed;
+                                machine.AddMove(move.Target + new Vector3(0, 0, z_offset), inches_per_minute);
+                            }
+                        }
+
+                        // Machine state has changed, maybe there are new commands.
+                        while (true)
+                        {
+                            byte[] command = machine.GenerateNextCommand();
+                            if (command.Length > 0)
+                            {
+                                serial.Transmit(command);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+
+                        currentStatus.currentPosition = machine.GetPosition();
+                        
+                        if (machine.IsPaused)
+                        {
+                            currentStatus.idle = false;
+                            currentStatus.paused = true;
+                            currentStatus.pausing = false;
+                        }
+                        else if (!currentStatus.pausing)
+                        {
+                            currentStatus.idle = false;
+                            currentStatus.paused = false;
+                        }
+                        
+                        if (!currentStatus.pausing && machine.IsIdle && commands.Count == 0)
+                        {
+                            currentStatus.idle = true;
+                        }
+                        onRobotStatusChange(currentStatus, null);
+                    }
                 }
                 else
                 {
-                    if (currentCommand.ProcessResponse(data))
+                    string newData = System.Text.Encoding.ASCII.GetString(data);
+                    dataBuffer.Append(newData);
+                    if (newData.Contains('\n'))
                     {
-                        bool canAcceptMoveCommand = false;
-                        if (currentCommand is IRobotCommandWithStatus)
-                        {
-                            IRobotCommandWithStatus status = currentCommand as IRobotCommandWithStatus;
-                            currentPosition = status.CurrentPosition;
-                            canAcceptMoveCommand = status.CanAcceptMoveCommand;
-                            if (this.lastPositionKnown == false)
-                            {
-                                lastPosition = currentPosition;
-                                lastPositionKnown = true;
-                            }
-                            if (onRobotStatusChange != null)
-                            {
-                                onRobotStatusChange(status, EventArgs.Empty);
-                            }
-                        }
-                        else if (currentCommand is RobotDetectionCommand)
-                        {
-                            RobotDetectionCommand r = currentCommand as RobotDetectionCommand;
-                            commandGenerator = r.GetCommandGenerator();
-                        }
+                        string allData = dataBuffer.ToString();
+                        List<string> lines = new List<string>(allData.Split('\n'));
 
-                        currentCommand = GetNextCommand(canAcceptMoveCommand);
-                        serial.Transmit(currentCommand.GenerateCommand());
+                        // The last part is still being built.
+                        dataBuffer = new StringBuilder(lines.Last());
+                        lines.RemoveAt(lines.Count - 1);
+                        foreach (string line in lines)
+                        {
+                            Console.WriteLine("Robot Detection: " + line.Trim());
+                            // GRBL responds to '?' with something like this:
+                            // <Idle|MPos:0.000,0.000,0.000|FS:0,0>
+                            if (line.Contains("MPos"))
+                            {
+                                machine = new GrblMachine();
+                                onRobotStatusChange(null, null);
+                            }
+                            else if (newData.Contains("Repetier"))
+                            {
+                                machine = new RepetierMachine();
+                                onRobotStatusChange(null, null);
+                            }
+                        }
                     }
                 }
             }
+            //t.Start();
         }
-
-        private IRobotCommand GetNextCommand(bool canAcceptMoveCommand)
-        {
-            currentCommand = null;
-            if (commandGenerator == null)
-            {
-                return null;
-            }
-
-            if (sendZeroCommand)
-            {
-                currentCommand = commandGenerator.GenerateZeroCommand();
-                sendZeroCommand = false;
-            }
-            if (sendCancelCommand)
-            {
-                currentCommand = commandGenerator.GenerateCancelCommand();
-                sendCancelCommand = false;
-            }
-            else if (sendResumeCommand)
-            {
-                currentCommand = commandGenerator.GenerateResumeCommand();
-                sendResumeCommand = false;
-            }
-            else if (sendPauseCommand)
-            {
-                currentCommand = commandGenerator.GeneratePauseCommand();
-                sendPauseCommand = false;
-            }
-            else if (sendEnableStepperCommand)
-            {
-                currentCommand = commandGenerator.GenerateStepperEnableCommand();
-                sendEnableStepperCommand = false;
-            }
-            else if (sendDisableStepperCommand)
-            {
-                currentCommand = commandGenerator.GenerateStepperDisableCommand();
-                sendDisableStepperCommand = false;
-            }
-            else if (canAcceptMoveCommand && lastPositionKnown)
-            {
-                while (currentCommand == null && commands.Count > 0)
-                {
-                    ICommand command = commands.Dequeue();
-                    if (command is MoveTool)
-                    {
-                        currentCommand = CreateRobotCommand(command as MoveTool, commandGenerator);
-                    }
-                }
-            }
-            if (currentCommand == null)
-            {
-                currentCommand = commandGenerator.GenerateStatusCommand();
-            }
-            
-            return currentCommand;
-        }
-        
-        /// <summary>
-        /// Create a robot command from a MoveTool command.  Adjusts for robot specific
-        /// max speeds.  May return null if there is no effective move.
-        /// </summary>
-        /// <param name="m"></param>
-        /// <returns></returns>
-        private IRobotCommand CreateRobotCommand(MoveTool m, ICommandGenerator c)
-        {
-            var p = m.Target;
-            p.Z += z_offset;
-
-            float inches_per_minute = m.Speed == MoveTool.SpeedType.Cutting ? MaxCutSpeed : MaxRapidSpeed;
-
-            Vector3 delta = lastPosition - p;
-            lastPosition = p;
-
-            if (delta.Length > 0)
-            {
-                if (Math.Abs(delta.Z) > 0.0001f)
-                {
-                    inches_per_minute = Math.Min(MaxZSpeed, inches_per_minute);
-                }
-                return c.GenerateMoveCommand(p, inches_per_minute / 60.0f);
-            }
-            else
-            {
-                Console.WriteLine("Ignoring command with length of 0");
-                return null;
-            }
-        }
-
     }
 }

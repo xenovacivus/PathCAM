@@ -18,15 +18,20 @@ using Geometry;
 using Router.Paths;
 using Commands;
 using System.Reflection;
+using ClipperLib;
+using OpenTK.Graphics.OpenGL;
 
 namespace GUI
-{   
+{
+
     public partial class PathCAM : Form, IOpenGLDrawable
     {
         private RouterGUI router;
         private string dragDropFilename = null;
         private Regex acceptedFileRegex = new Regex(@".*(\.dae|\.obj|\.stl|\.nc|\.gcode)", RegexOptions.IgnoreCase);
         private Settings settings;
+        //PolygonDrawing testDrawing;
+        GerberGUI gerberGUI;
 
         public PathCAM()
         {
@@ -35,19 +40,29 @@ namespace GUI
             router = new RouterGUI();
             drawing3D.AddObject(router);
             robotControl.AssignRouter(router);
-            
+
             drawing3D.AddObject(robotControl);
             drawing3D.AddObject(this);
             drawing3D.DragDrop += this.Drawing3D_DragDrop;
             drawing3D.DragOver += this.Drawing3D_DragOver;
             drawing3D.DragEnter += this.Drawing3D_DragEnter;
             drawing3D.DragLeave += this.Drawing3D_DragLeave;
-            
+
             settings = new Settings(robotControl.GetRobot(), router);
+            robotControl.AssignUnitScale(settings.GetUnitConverter());
+
             propertyGrid.SelectedObject = settings;
+            propertyGrid.ToolbarVisible = false;
+            propertyGrid.PropertySort = PropertySort.Categorized;
             comboBox1.SelectedIndex = 0;
+
+            // For testing polygon triangulation
+            //testDrawing = new PolygonDrawing();
+            //drawing3D.AddObject(testDrawing);
+            gerberGUI = new GerberGUI(router); // TODO: only create this when the first gerber is loaded.
+            drawing3D.AddObject(gerberGUI);
         }
- 
+
         void Drawing3D_DragLeave(object sender, EventArgs e)
         {
             //dragDropFilename = null;
@@ -104,27 +119,88 @@ namespace GUI
         {
             public float scale;
             public string filename;
-            public TriangleMeshGUI mesh;
+            public IOpenGLDrawable mesh;
         }
 
-        private List<TriangleMeshGUI> inProgressMeshes = new List<TriangleMeshGUI>();
+        private List<IOpenGLDrawable> drawWhileLoading = new List<IOpenGLDrawable>();
+
         internal TriangleMeshGUI AddFile(string filename, float scale)
         {
-            if (filename.EndsWith(".nc", StringComparison.OrdinalIgnoreCase) || filename.EndsWith(".gcode", StringComparison.OrdinalIgnoreCase))
+            TriangleMeshGUI mesh = null; // Only used for drag and drop right now.
+
+            bool isGerberFile = false;
+            bool isDrillFile = false;
+            bool isGcodeFile = false;
+            bool is3DFile = false;
+            foreach (string ext in supportedGerberFileExtensions)
+            {
+                if (filename.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+                {
+                    isGerberFile = true;
+                    break;
+                }
+            }
+
+            foreach (string ext in supportedDrillFileExtensions)
+            {
+                if (filename.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+                {
+                    isDrillFile = true;
+                    break;
+                }
+            }
+
+            foreach (string ext in supportedGcodeFileExtensions)
+            {
+                if (filename.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+                {
+                    isGcodeFile = true;
+                    break;
+                }
+            }
+
+            foreach (string ext in supported3DFileExtensions)
+            {
+                if (filename.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+                {
+                    is3DFile = true;
+                    break;
+                }
+            }
+
+
+            if (isGerberFile)
+            {
+                // Gerber file (2D art file, vector type format)
+                BackgroundWorker worker = new BackgroundWorker();
+                worker.DoWork += worker_LoadMesh;
+                worker.RunWorkerCompleted += worker_LoadMeshCompleted;
+                //GerberGUI gerberGUI = new GerberGUI();
+                //drawWhileLoading.Add(gerberGUI);
+                worker.RunWorkerAsync(new LoadMeshData() { filename = filename, scale = loadObjectScale, mesh = gerberGUI });
+                //this.testDrawing.SetPolygons(g.GetDebugPolygons());
+            }
+            else if (isDrillFile)
+            {
+                gerberGUI.AddDrillData(DRL_Loader.Load(filename));
+            }
+            else if (isGcodeFile)
             {
                 var commands = GCodeLoader.Load(filename);
                 foreach (ICommand command in commands)
                 {
                     router.AddCommand(command);
                 }
-                return null;
             }
-            BackgroundWorker worker = new BackgroundWorker();
-            worker.DoWork += worker_LoadMesh;
-            worker.RunWorkerCompleted += worker_LoadMeshCompleted;
-            var mesh = new TriangleMeshGUI();
-            inProgressMeshes.Add(mesh);
-            worker.RunWorkerAsync(new LoadMeshData() { filename = filename, scale = loadObjectScale, mesh = mesh });
+            else if (is3DFile)
+            {
+                BackgroundWorker worker = new BackgroundWorker();
+                worker.DoWork += worker_LoadMesh;
+                worker.RunWorkerCompleted += worker_LoadMeshCompleted;
+                mesh = new TriangleMeshGUI();
+                drawWhileLoading.Add(mesh);
+                worker.RunWorkerAsync(new LoadMeshData() { filename = filename, scale = loadObjectScale, mesh = mesh });
+            }
             return mesh;
         }
 
@@ -133,46 +209,47 @@ namespace GUI
             var data = e.Argument as LoadMeshData;
             string filename = data.filename;
             float scale = data.scale;
-            var triangleMesh = data.mesh;
-            if (filename.EndsWith(".dae", StringComparison.OrdinalIgnoreCase))
+            var targetDrawableObject = data.mesh;
+            if (targetDrawableObject is TriangleMeshGUI)
             {
-                DAE_Loader.Load(filename, triangleMesh, scale);
+                TriangleMeshGUI triangleMesh = targetDrawableObject as TriangleMeshGUI;
+
+                if (filename.EndsWith(".dae", StringComparison.OrdinalIgnoreCase))
+                {
+                    DAE_Loader.Load(filename, triangleMesh, scale);
+                }
+                else if (filename.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+                {
+                    OBJ_Loader.Load(filename, triangleMesh, scale);
+                }
+                else if (filename.EndsWith(".stl", StringComparison.OrdinalIgnoreCase))
+                {
+                    STL_Loader.Load(filename, triangleMesh, scale);
+                }
+
+                if (triangleMesh != null && triangleMesh.Triangles.Count() > 0)
+                {
+                    triangleMesh.GenerateTabPaths(router.ToolDiameter / 2.0f);
+                    triangleMesh.RefreshDisplayLists(); // The triangles will be static after this point - make sure they're correctly displayed.
+                }
             }
-            else if (filename.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+            else if (targetDrawableObject is GerberGUI)
             {
-                OBJ_Loader.Load(filename, triangleMesh, scale);
+                GerberGUI gerberGUI = targetDrawableObject as GerberGUI;
+                gerberGUI.AddGerberLoader(new Geometry.GERBER_Loader(filename)); // Gerber files contain their own scale information.
             }
-            else if (filename.EndsWith(".stl", StringComparison.OrdinalIgnoreCase))
-            {
-                STL_Loader.Load(filename, triangleMesh, scale);
-            }
-            if (triangleMesh != null && triangleMesh.Triangles.Count() > 0)
-            {
-                triangleMesh.GenerateTabPaths(router.ToolDiameter / 2.0f);
-                triangleMesh.RefreshDisplayLists(); // The triangles will be static after this point - make sure they're correctly displayed.
-            }
-            e.Result = triangleMesh;
+
+            e.Result = targetDrawableObject;
         }
 
-        // For debugging, generate paths for the first loaded
-        // trianglemesh every frame (allows drawing code inside the generation)
-        //TriangleMeshGUI m = null;
         void IOpenGLDrawable.Draw()
         {
             try
             {
-                foreach (var mesh in inProgressMeshes)
+                foreach (var mesh in drawWhileLoading)
                 {
                     mesh.Draw();
-                    //if (m == null)
-                    //{
-                    //    m = mesh;
-                    //}
                 }
-                //if (m != null)
-                //{
-                //    PathPlanner.PlanPaths(m, m.Tabs.ConvertAll(tab => tab as Tabs), router);
-                //}
             }
             catch (Exception)
             {
@@ -181,15 +258,19 @@ namespace GUI
 
         void worker_LoadMeshCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            var mesh = e.Result as TriangleMeshGUI;
-            if (mesh != null && mesh.Triangles.Count() > 0)
+            var drawable = e.Result as IOpenGLDrawable;
+            if (drawable != null)
             {
-                drawing3D.AddObject(mesh);
-                foreach (var tab in mesh.Tabs)
+                drawing3D.AddObject(drawable);
+                if (drawable is TriangleMeshGUI)
                 {
-                    drawing3D.AddObject(tab);
+                    TriangleMeshGUI mesh = drawable as TriangleMeshGUI;
+                    foreach (var tab in mesh.Tabs)
+                    {
+                        drawing3D.AddObject(tab);
+                    }
                 }
-                inProgressMeshes.RemoveAll(m => m == mesh);
+                drawWhileLoading.RemoveAll(m => m == drawable);
             }
         }
 
@@ -239,21 +320,57 @@ namespace GUI
             router.Complete();
         }
 
+
+        private static string[] supported3DFileExtensions = new string[]
+        {
+            // 3D shape files
+            ".dae",
+            ".obj",
+            ".stl",
+        };
+        private static string[] supportedGcodeFileExtensions = new string[]
+        {
+            // Gcode Files (partially supported...?)
+            ".nc",
+            ".gcode",
+        };
+        private static string[] supportedGerberFileExtensions = new string[]
+        {
+            // Generic Gerber Files
+            ".gbr", // Generic gerber file extensions
+            ".gerber",
+            ".gb",
+
+            // Different applications use different file conventions.
+            // https://www.pcbway.com/blog/help_center/Gerber_File_Extention_from_Different_Software.html
+            // Only including top copper, bottom copper, and board edge layers.
+
+            // Kicad
+            ".gtl", ".cmp", ".top",  // Top Copper
+            ".gbl", ".sol", ".bot", // Bottom Copper
+            ".dim", ".gko", ".fab", // Board Edge
+            ".ger", // Other generic layers
+        };
+        private static string[] supportedDrillFileExtensions = new string[]
+        {
+            ".drl",
+        };
+
         private void loadButton_Click(object sender, EventArgs e)
         {
             OpenFileDialog d = new OpenFileDialog();
-            d.Filter = "3D Files |*.dae;*.obj;*.stl;*.nc;*.gcode";
+            d.Filter = "All Supported Files |*" +
+                string.Join(";*", supportedGerberFileExtensions) + ";*" +
+                string.Join(";*", supportedDrillFileExtensions) + ";*" +
+                string.Join(";*", supported3DFileExtensions) + ";*" +
+                string.Join(";*", supportedGcodeFileExtensions);
+            
+            d.Multiselect = true;
             if (DialogResult.OK == d.ShowDialog())
             {
-                AddFile(d.FileName, loadObjectScale);
-                foreach (Object o in drawing3D.GetObjects())
+                foreach (string fileName in d.FileNames)
                 {
-                    TriangleMesh mesh = o as TriangleMesh;
-                    if (mesh != null)
-                    {
-                        router.MoveHeight = mesh.MaxPoint.Z + 0.025f;
-                        this.propertyGrid.Refresh();
-                    }
+                    AddFile(fileName, loadObjectScale);   
                 }
             }
         }
@@ -366,8 +483,8 @@ namespace GUI
             this.comboBox1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.comboBox1.FormattingEnabled = true;
             this.comboBox1.Items.AddRange(new object[] {
-            "inches",
-            "millimeters"});
+            "millimeters",
+            "inches"});
             this.comboBox1.Location = new System.Drawing.Point(87, 129);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(107, 21);
@@ -452,7 +569,7 @@ namespace GUI
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MinimumSize = new System.Drawing.Size(600, 500);
             this.Name = "PathCAM";
-            this.Text = "PathCAM - Toolpath generation software for CNC robots";
+            this.Text = "PathCAM - Toolpath generation software for CNC robots (Gerber Loader Beta!)";
             this.Load += new System.EventHandler(this.PathCAM_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);

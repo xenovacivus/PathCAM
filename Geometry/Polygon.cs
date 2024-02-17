@@ -25,6 +25,10 @@ using Geometry;
 
 namespace Geometry
 {
+    /// <summary>
+    /// A polygon comprised of 3d points.
+    /// The points should all be co-planar.
+    /// </summary>
     public class Polygon
     {
         private List<Vector3> vertices;

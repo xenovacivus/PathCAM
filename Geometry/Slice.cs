@@ -24,7 +24,6 @@ using System.Drawing;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using ClipperLib;
-using TriangleNet.Geometry;
 
 
 namespace Geometry
@@ -36,7 +35,7 @@ namespace Geometry
         private Plane plane;
 
         // For converting to/from 2D polygons
-        private float scale = 1000000;
+        private float scale = (float)Polygon2D.scale;//1000000;
         private Matrix4 transform;
         private Matrix4 inverseTransform;
         private PolyTree polyTree;
@@ -273,97 +272,22 @@ namespace Geometry
         /// </summary>
         public IEnumerable<Triangle> Triangles()
         {
-            
-            TriangleNet.Behavior behavior = new TriangleNet.Behavior();
-            behavior.ConformingDelaunay = true;
-
-            foreach (var poly in IndividualPolygons())
+            Polygon2D polygon2D = new Polygon2D();
+            Paths paths = Clipper.ClosedPathsFromPolyTree(polyTree);
+            foreach (Path path in paths)
             {
-                PolyNode node = polyTree.GetFirst();
-                InputGeometry geometry = new InputGeometry();
-                while (node != null)
-                {
-                    var offset = geometry.Points.Count();
-                    var index = 0;
-                    foreach (IntPoint point in node.Contour)
-                    {
-                        geometry.AddPoint(point.X, point.Y);
-                        if (index > 0)
-                        {
-                            geometry.AddSegment(index - 1 + offset, index + offset);
-                        }
-                        index++;
-                    }
-                    geometry.AddSegment(index - 1 + offset, offset);
-
-                    if (node.IsHole)
-                    {
-                        // To describe a hole, AddHole must be called with a location inside the hole.
-                        IntPoint last = new IntPoint(0, 0);
-                        bool lastKnown = false;
-                        double longest = 0;
-                        IntPoint longestAlong = new IntPoint(0, 0);
-                        IntPoint from = new IntPoint(0, 0);
-                        foreach (IntPoint point in node.Contour)
-                        {
-                            if (lastKnown)
-                            {
-                                IntPoint along = new IntPoint(point.X - last.X, point.Y - last.Y);
-                                double length = Math.Sqrt(along.X * along.X + along.Y * along.Y);
-                                if (length > longest)
-                                {
-                                    longest = length;
-                                    longestAlong = along;
-                                    from = last;
-                                }
-                            }
-                            last = point;
-                            lastKnown = true;
-                        }
-                        if (longest > 0)
-                        {
-                            double perpendicularX = ((double)longestAlong.Y * (double)scale * 0.001d) / longest;
-                            double perpendicularY = -((double)longestAlong.X * (double)scale * 0.001d) / longest;
-                            geometry.AddHole(perpendicularX + from.X + longestAlong.X / 2.0d,
-                                perpendicularY + from.Y + longestAlong.Y / 2.0d);
-                        }
-                        else
-                        {
-                        }
-                    }
-                    node = node.GetNext();
-                }
-
-                if (geometry.Points.Count() > 0)
-                {
-                    var mesh = new TriangleNet.Mesh(behavior);
-                    mesh.Triangulate(geometry);
-                    mesh.Renumber();
-                    foreach (Triangle t in this.GetMeshTriangles(mesh))
-                    {
-                        yield return t;
-                    }
-                }
+                // TODO: AddOutside is the same as AddInside.
+                polygon2D.AddLibTessPolygon(path);
+            }
+            foreach (Triangle t in polygon2D.LibTessTriangles(inverseTransform))
+            {
+                yield return t;
             }
         }
 
         private Vector3 TransformTo3D(IntPoint point)
         {
             return Vector3.Transform(new Vector3(point.X, point.Y, 0), inverseTransform);
-        }
-
-        private IEnumerable<Triangle> GetMeshTriangles(TriangleNet.Mesh mesh)
-        {
-            List<Vector3> vertices = new List<Vector3>();
-            foreach (var vertex in mesh.Vertices)
-            {
-                vertices.Add(TransformTo3D(new IntPoint((long)vertex.X, (long)vertex.Y)));
-            }
-
-            foreach (var triangle in mesh.Triangles)
-            {
-                yield return new Triangle(vertices[triangle.P0], vertices[triangle.P1], vertices[triangle.P2]);
-            }
         }
 
         public void RemoveHoles(float maxPerimiter)
