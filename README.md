@@ -5,7 +5,7 @@ PathCAM - Toolpath generation software for CNC robots!  PathCAM is a simple, eas
 
 This branch adds support for loading Gerber files (PCB board files) and isolation trace routing.  Help out by trying the tool and providing feedback and requesting more features!
 
-![PathCAM Screenshot](https://raw.github.com/xenovacivus/PathCAM/master/Examples/screenshot-pcb.png)
+![PathCAM Screenshot](https://github.com/xenovacivus/PathCAM/blob/pathcam-gerber/Examples/screenshot-pcb.png)
 
 
 Getting Started
