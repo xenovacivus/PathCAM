@@ -3,9 +3,9 @@ PathCAM
 
 PathCAM - Toolpath generation software for CNC robots!  PathCAM is a simple, easy to use tool for generating 2.5D toolpaths to cut shapes from stock material using a CNC Router.  PathCAM can connect directly to some CNC robots, and can export simple .gcode for others.
 
-PathCAM is under active development!  Help out by trying the tool and providing feedback and requesting more features.
+This branch adds support for loading Gerber files (PCB board files) and isolation trace routing.  Help out by trying the tool and providing feedback and requesting more features!
 
-![PathCAM Screenshot](https://raw.github.com/xenovacivus/PathCAM/master/Examples/screenshot.png)
+![PathCAM Screenshot](https://github.com/xenovacivus/PathCAM/blob/pathcam-gerber/Examples/screenshot-pcb.png)
 
 
 Getting Started
@@ -23,17 +23,24 @@ Getting Started
         ```
 
 * Windows
-  * Download the [PathCAM MSI package](https://github.com/xenovacivus/PathCAM/blob/master/Installer/PathCAM.msi?raw=true)
-  * Alternatively, you can build the sources with Mono or Visual Studio 2012.
+  * Download the [PathCAM MSI package (beta with Gerber support!)](https://github.com/xenovacivus/PathCAM/blob/pathcam-gerber/Installer/PathCAM.msi?raw=true)
+  * Alternatively, you can build the sources with Mono or Visual Studio.
 
 
-Usage
+Usage (PCB isolation trace generation)
 ------------
 
-Start by loading a .stl or .obj file - you can just drag & drop from the file system, or use the Open File button.  Make sure the dropdown for scale is set correctly before loading the file (most files on Thingiverse are in millimeters).  You can move the models (green things) and the tabs (orange things) around to suit your needs.  Once you've got everything where you want it, try to generate some toolpaths.
+Use the "Open" button to browse to Gerber files and open them.  PathCAM will load top/bottom copper, board edges, and drill files.  If you generated the files with a recent version of KiCad, PathCAM can automatically detect which files belong on which layers.  Otherwise, you can right-click on the loaded layer and reassign it to the proper location.
 
-* Boundary Check Paths: Adds a toolpath which follows the bounding box of the object at the safe moving height.  Useful to do a dry run and make sure the tool is clear of all clamps, etc.
-* Add Perimeter Paths: Adds toolpaths which follow the edges of the object.  The paths will be divided into layers depending on "Max Cut Depth", and will do two passes along each edge: one rough cut, removing the bulk of the material, and a clean cut trimming the edge to the exact dimension.
+Use the fields on the left to set an isolation trace generation parameters:
+ * Tool Diameter: diameter of the cutting tool (0.5mm by default)
+ * Move Height: height of moves from one trace to another.  Any value above the board height will work.
+ * Point Span: this is the distance between points on routed paths.  A larger value will be easier to send to CNC machines (fewer lines of GCode), but will have less resolution
+ * Uniform Points: set to true to generate points uniformly spaced (even on straight lines).  This plays well with live updates of the z-offset for machines that can't inject a jog between buffered moves.
+Additionally, for the board edge:
+ * Max Cut Depth: the maximum depth the bit can cut in one pass
+ * Last Pass Height: how far above or below the bottom of the board the last pass should go.  Set to a negative value to go beyond the board bottom (good if the PCB is held down with double-sided sticky tape), or a positive value to leave a small brim attached.
+ * Note: currently there are no tabs inserted for PCB board edges (including internal cutouts).  Beware!
 
 With the tool paths generated, you can save them to a .gcode file or run them directly from PathCAM on specific robots (Including machines running GRBL!!!).  Connections to more robots will be added in the future - if you have one in mind, say something and maybe it will be added sooner!
 
@@ -53,7 +60,8 @@ Special Thanks
 
 OpenSource thrives on proper acknowledgement!  In that regard, I'd like to thank the authors of the following projects which play a critical part in PathCAM:
 
-* [Clipper](http://www.angusj.com/delphi/clipper.php): A great polygon clipping tool - PathCAM uses Clipper to offset toolpaths from the raw sliced object layers.
+* [Clipper](http://www.angusj.com/delphi/clipper.php): A great polygon clipping tool - PathCAM uses Clipper to offset toolpaths from the raw sliced object layers.  Clipper is also used heavily in PathCAM's Gerber loader to merge the 2D art polygons.
 * [STLdotNET](https://github.com/QuantumConcepts/STLdotNET): STL loading library used by PathCAM to open .STL files.  Works Great!
-* [Triangle](http://www.cs.cmu.edu/~quake/triangle.html) and [Triangle.NET](http://triangle.codeplex.com/): Awesome triangle tesselation tools, great for breaking up polygons with holes into a set of triangles.  PathCAM uses Triangle to tesselate polygons to be drawn by OpenGL.
+* [LibTessDotNet](https://github.com/speps/LibTessDotNet): Port of the GLU Tesselator - PathCAM uses LibTessDotNet to fill a polygon with triangles to be drawn by OpenGL.
+* [Triangle](http://www.cs.cmu.edu/~quake/triangle.html) and [Triangle.NET](http://triangle.codeplex.com/): Awesome triangle tesselation tools, great for breaking up polygons with holes into a set of triangles.  PathCAM formerly used Triangle to tesselate polygons to be drawn by OpenGL.  Replaced by LibTessDotNet due to unexplainable license issues.
 
