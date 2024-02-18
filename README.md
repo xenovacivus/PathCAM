@@ -45,6 +45,8 @@ Additionally, for the board edge:
 
 With the tool paths generated, you can save them to a .gcode file or run them directly from PathCAM on specific robots (Including machines running GRBL!!!).  Connections to more robots will be added in the future - if you have one in mind, say something and maybe it will be added sooner!
 
+[PathCAM Gerber Overview and Tutorial Video](https://www.youtube.com/watch?v=USUT9_Offvs&t=1s)
+
 Connecting to a Robot
 ---------------------
 
